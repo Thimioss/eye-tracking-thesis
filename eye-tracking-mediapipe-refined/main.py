@@ -9,6 +9,7 @@ import numpy as np
 import time
 import pyautogui as gui
 
+from calculated_values import CalculatedValues
 from calibration_values import CalibrationValues
 from constants import Constants
 from evaluation_data import EvaluationData
@@ -20,35 +21,13 @@ mp_face_mesh = mp.solutions.face_mesh
 evaluation_data = EvaluationData()
 constants = Constants()
 calibration_values = CalibrationValues()
+calculated_values = CalculatedValues()
 
 start_time = time.time()
 display_time = 2
 frames_counter = 0
 fps = 0
 angles = [0, 0, 0]
-
-left_edge_norm = (0, 0, 0)
-right_edge_norm = (0, 0, 0)
-left_eye_norm = (0, 0, 0)
-right_eye_norm = (0, 0, 0)
-left_anchor_calibration_point_offset_norm = (0, 0, 0)
-right_anchor_calibration_point_offset_norm = (0, 0, 0)
-face_anchor_initial_points_2d = ((0, 0), (0, 0), (0, 0), (0, 0))
-face_anchor_initial_points_3d = []
-eyes_anchor_initial_points = ((0, 0), (0, 0))
-forehead_chin_landmark_distance = 0
-face_center_screen = (0, 0)
-face_tilt_width_offset = 0
-face_tilt_height_offset = 0
-window = [0, 0, 1, 1]
-left_eye_width_offset = 0
-left_eye_height_offset = 0
-right_eye_width_offset = 0
-right_eye_height_offset = 0
-face_distance = 60
-x_angle, y_angle, z_angle = 0, 0, 0
-x_cal, y_cal, z_cal = 0, 0, 0
-scaled_face_vector = [1, 1]
 
 
 def nothing(x):
@@ -111,19 +90,16 @@ def mouse_event(event, x, y, flags, param):
     else:
         pass
 
+    if calibration_values.evaluation_happening:
+        if event is cv2.EVENT_LBUTTONDOWN and int(window[2] / 2) - 150 <= x < int(window[2] / 2) + 150 \
+           and int(window[3]) - 200 <= y < int(window[3]) - 100:
+            calibration_values.evaluation_measuring_points = True
+        elif event is cv2.EVENT_LBUTTONUP:
+            calibration_values.evaluation_measuring_points = False
+
 
 def reset_calibrations():
     global calibration_values
-    # global face_height_on_60cm_away, face_position_correction_width, face_position_correction_height, \
-    #     face_tilt_correction_width, face_tilt_correction_height, face_tilt_factor_width, face_tilt_factor_height, \
-    #     left_eye_tilt_correction_width, left_eye_tilt_correction_height, right_eye_tilt_correction_width, \
-    #     right_eye_tilt_correction_height, left_eye_tilt_factor_height, left_eye_tilt_factor_width, \
-    #     right_eye_tilt_factor_height, right_eye_tilt_factor_width, left_eye_calibration_point_offset, \
-    #     right_eye_calibration_point_offset, eyes_depth_offset, scaled_face_vector, x_off, y_off, z_off, \
-    #     left_gaze_point_offset, right_gaze_point_offset, left_gaze_point_factor, right_gaze_point_factor, \
-    #     face_anchor_initial_points_2d, eyes_anchor_initial_points, face_anchor_initial_points_3d, rvec_init, \
-    #     tvec_init, face_point_correction, face_distance_offset, left_eye_point_correction, right_eye_point_correction, \
-    #     left_eye_distance_offset, right_eye_distance_offset, calibration_completed
     calibration_values = CalibrationValues()
 
 
@@ -142,7 +118,7 @@ def get_calibrated_eye_depth_error(anchor_initial_points, keypoint, depth_offset
 
 
 def calibrate_eyes_depth():
-    global calibration_values, x_cal, y_cal, scaled_face_vector, eyes_anchor_initial_points, rot_vec, trans_vec, \
+    global calculated_values, calibration_values, rot_vec, trans_vec, \
         cam_matrix, dist_matrix
     # eyes_depth_offset = 0
     # error_prev = 10000
@@ -155,15 +131,15 @@ def calibrate_eyes_depth():
     #                                            trans_vec, cam_matrix, dist_matrix)
     #
     # eyes_depth_offset -= 1
-    calibration_values.eyes_depth_offset = (keypoint_left[0] - eyes_anchor_points[0][0]) / scaled_face_vector[0]
+    calibration_values.eyes_depth_offset = (keypoint_left[0] - eyes_anchor_points[0][0]) / calculated_values.scaled_face_vector[0]
 
 
 def calibrate_pose_estimation_and_anchor_points():
-    global face_anchor_initial_points_2d, face_anchor_initial_points_3d, eyes_anchor_initial_points, nose_landmark
-    face_anchor_initial_points_2d = face_2d
-    face_anchor_initial_points_3d = face_3d
-    face_anchor_initial_points_3d = move_origin_point(face_anchor_initial_points_3d, nose_landmark)
-    eyes_anchor_initial_points = [(int(keypoint_left[0]), int(keypoint_left[1]), int(keypoint_left[2])),
+    global calculated_values, nose_landmark
+    calculated_values.face_anchor_initial_points_2d = face_2d
+    calculated_values.face_anchor_initial_points_3d = face_3d
+    calculated_values.face_anchor_initial_points_3d = move_origin_point(calculated_values.face_anchor_initial_points_3d, nose_landmark)
+    calculated_values.eyes_anchor_initial_points = [(int(keypoint_left[0]), int(keypoint_left[1]), int(keypoint_left[2])),
                                   (int(keypoint_right[0]), int(keypoint_right[1]), int(keypoint_right[2]))]
     # eyes_anchor_initial_points = move_origin_point(eyes_anchor_initial_points, nose_landmark)
 
@@ -175,25 +151,17 @@ def move_origin_point(points, new_origin_point):
 
 
 def calibrate_offsets():
-    global calibration_values
-    # global face_detected, face_height_on_60cm_away, face_position_correction_width, face_position_correction_height, \
-    #     forehead_chin_landmark_distance, face_center_screen, window, x_angle, y_angle, x_off, y_off, z_off, z_angle, \
-    #     face_point, face_center_screen_cal, face_point_correction, left_eye_point_correction, left_eye_point, \
-    #     right_eye_point_correction, right_eye_point
+    global calibration_values, calculated_values
     if face_detected:
-        calibration_values.face_height_on_60cm_away = forehead_chin_landmark_distance
-        calibration_values.face_position_correction_width = face_center_screen[0] - (window[2] / 2)
-        calibration_values.face_position_correction_height = face_center_screen[1] - (window[3] / 2)
+        calibration_values.face_height_on_60cm_away = calculated_values.forehead_chin_landmark_distance
+        calibration_values.face_position_correction_width = calculated_values.face_center_screen[0] - (window[2] / 2)
+        calibration_values.face_position_correction_height = calculated_values.face_center_screen[1] - (window[3] / 2)
         calibration_values.face_point_correction = [screen.shape[1] / 2 - face_point[0],
                                                     screen.shape[0] / 2 - face_point[1]]
-        # left_eye_point_correction = [screen.shape[1] / 2 - left_eye_point[0],
-        #                              screen.shape[0] / 2 - left_eye_point[1]]
-        # right_eye_point_correction = [screen.shape[1] / 2 - right_eye_point[0],
-        #                               screen.shape[0] / 2 - right_eye_point[1]]
         calculate_eye_correction_offsets()
-        calibration_values.x_off = -x_angle
-        calibration_values.y_off = -y_angle
-        calibration_values.z_off = -z_angle
+        calibration_values.x_off = -calculated_values.x_angle
+        calibration_values.y_off = -calculated_values.y_angle
+        calibration_values.z_off = -calculated_values.z_angle
 
 
 def calculate_eye_correction_offsets():
@@ -203,46 +171,44 @@ def calculate_eye_correction_offsets():
 
 
 def calculate_eye_correction_width_factor():
-    # global left_gaze_point_factor, right_gaze_point_factor, left_gaze_point_cal, right_gaze_point_cal
+    global calibration_values
     calibration_values.left_gaze_point_factor[0] = (screen.shape[1] / 2) / left_gaze_point_cal[0]
     calibration_values.right_gaze_point_factor[0] = (screen.shape[1] / 2) / right_gaze_point_cal[0]
 
 
 def calculate_eye_correction_height_factor():
-    # global left_gaze_point_factor, right_gaze_point_factor, left_gaze_point_cal, right_gaze_point_cal
+    global calibration_values
     calibration_values.left_gaze_point_factor[1] = (screen.shape[0] / 2) / left_gaze_point_cal[1]
     calibration_values.right_gaze_point_factor[1] = (screen.shape[0] / 2) / right_gaze_point_cal[1]
 
 
 def calculate_face_distance_offset():
-    # global face_distance_offset, face_vector, face_distance
+    global calibration_values, calculated_values
     calibration_values.face_distance_offset = ((screen.shape[1] - face_center_screen_cal[0] -
                                                 calibration_values.face_point_correction[0]) * face_vector[2] /
-                                               face_vector[0]) - face_distance
+                                               face_vector[0]) - calculated_values.face_distance
 
 
 def calculate_eyes_distance_offset():
-    # global left_eye_distance_offset, left_eye_vector, face_distance, left_eye_center_screen_cal, \
-    #     right_eye_distance_offset, right_eye_vector, right_eye_center_screen_cal
-    global keypoint_right, keypoint_left, face_distance, left_eye_center_screen_cal, right_eye_center_screen_cal, \
-        left_eye_vector, right_eye_vector
+    global keypoint_right, keypoint_left, left_eye_center_screen_cal, right_eye_center_screen_cal, \
+        left_eye_vector, right_eye_vector, calculated_values
     calibration_values.left_eye_distance_offset = ((screen.shape[1] - left_eye_center_screen_cal[0] -
                                                     calibration_values.left_eye_point_correction[0]) *
                                                    left_eye_vector[2] /
-                                                   left_eye_vector[0]) - face_distance - keypoint_left[2]
+                                                   left_eye_vector[0]) - calculated_values.face_distance - keypoint_left[2]
     calibration_values.right_eye_distance_offset = ((screen.shape[1] - right_eye_center_screen_cal[0]
                                                      - calibration_values.right_eye_point_correction[0]) *
                                                     right_eye_vector[2] /
-                                                    right_eye_vector[0]) - face_distance - keypoint_right[2]
+                                                    right_eye_vector[0]) - calculated_values.face_distance - keypoint_right[2]
 
 
 def calculate_eyes_vectors(o, k_l, k_r, edo):
-    global face_distance
+    global calculated_values
     if edo == 0:
         return [[0, 0, 1], [0, 0, 1]]
     else:
-        x_left = (k_l[0] - o[0][0]) / (edo * 60 / face_distance)
-        y_left = (k_l[1] - o[0][1]) / (edo * 60 / face_distance)
+        x_left = (k_l[0] - o[0][0]) / (edo * 60 / calculated_values.face_distance)
+        y_left = (k_l[1] - o[0][1]) / (edo * 60 / calculated_values.face_distance)
 
         if x_left > 1:
             x_left = 1
@@ -268,8 +234,8 @@ def calculate_eyes_vectors(o, k_l, k_r, edo):
 
         z_left = math.cos(angle_y_l) * math.cos(angle_x_l)
 
-        x_right = (k_r[0] - o[1][0]) / (edo * 60 / face_distance)
-        y_right = (k_r[1] - o[1][1]) / (edo * 60 / face_distance)
+        x_right = (k_r[0] - o[1][0]) / (edo * 60 / calculated_values.face_distance)
+        y_right = (k_r[1] - o[1][1]) / (edo * 60 / calculated_values.face_distance)
 
         if x_right > 1:
             x_right = 1
@@ -306,49 +272,22 @@ def show_text(img, string, x_, y_):
 
 def show_calibration_values(img):
     pass
-    # show_text(img, "face_detected: " + str(face_detected), 10, 30)
-    # show_text(img, "calibration_completed: " + str(calibration_completed), 10, 70)
-    # show_text(img, "face_height: " + str(face_height_on_60cm_away), 10, 90)
-    # show_text(img, "face_position_correction_width: " + str(face_position_correction_width), 10, 110)
-    # show_text(img, "face_position_correction_height: " + str(face_position_correction_height), 10, 130)
-    # show_text(img, "face_tilt_correction_width: " + str(face_tilt_correction_width), 10, 150)
-    # show_text(img, "face_tilt_correction_height: " + str(face_tilt_correction_height), 10, 170)
-    # show_text(img, "face_tilt_factor_width: " + str(face_tilt_factor_width), 10, 190)
-    # show_text(img, "face_tilt_factor_height: " + str(face_tilt_factor_height), 10, 210)
-    # show_text(img, "left_eye_tilt_correction_width: " + str(left_eye_tilt_correction_width), 10, 230)
-    # show_text(img, "left_eye_tilt_correction_height: " + str(left_eye_tilt_correction_height), 10, 250)
-    # show_text(img, "left_eye_tilt_factor_height: " + str(left_eye_tilt_factor_height), 10, 270)
-    # show_text(img, "left_eye_tilt_factor_width: " + str(left_eye_tilt_factor_width), 10, 290)
-    # show_text(img, "right_eye_tilt_correction_width: " + str(right_eye_tilt_correction_width), 460, 230)
-    # show_text(img, "right_eye_tilt_correction_height: " + str(right_eye_tilt_correction_height), 460, 250)
-    # show_text(img, "right_eye_tilt_factor_height: " + str(right_eye_tilt_factor_height), 460, 270)
-    # show_text(img, "right_eye_tilt_factor_width: " + str(right_eye_tilt_factor_width), 460, 290)
-    # show_text(img, "forehead_chin_landmark_distance: " + str(forehead_chin_landmark_distance), 10, 310)
-    # show_text(img, "face_center_screen: " + str(face_center_screen), 10, 330)
-    # show_text(img, "face_tilt_width_offset: " + str(face_tilt_width_offset), 10, 350)
-    # show_text(img, "face_tilt_height_offset: " + str(face_tilt_height_offset), 10, 370)
-    # show_text(img, "window: " + str(window), 10, 390)
-    # show_text(img, "left_eye_width_offset: " + str(left_eye_width_offset), 10, 410)
-    # show_text(img, "left_eye_height_offset: " + str(left_eye_height_offset), 10, 430)
-    # show_text(img, "right_eye_width_offset: " + str(right_eye_width_offset), 460, 410)
-    # show_text(img, "right_eye_height_offset: " + str(right_eye_height_offset), 460, 430)
-    # show_text(img, "face_distance: " + str(face_distance), 10, 450)
-    #
-    # show_text(img, "face_tilt_factor_height: " + str(face_tilt_factor_height), int(2 * window[2] / 3) + 50,
-    #           int(2 * window[3] / 3 + ((window[3] - 2 * window[3] / 3) / 2)) - 50)
-    # show_text(img, "face_tilt_factor_width: " + str(face_tilt_factor_width),
-    #           int(2 * window[2] / 3 + ((window[2] - 2 * window[2] / 3) / 2)) + 50,
-    #           int(2 * window[3] / 3 + ((window[3] - 2 * window[3] / 3) / 2)) - 50)
-    # show_text(img, "left_eye_tilt_factor_height: " + str(left_eye_tilt_factor_height), int(2 * window[2] / 3) + 50,
-    #           int(window[3]) - 50)
-    # show_text(img, "left_eye_tilt_factor_width: " + str(left_eye_tilt_factor_width),
-    #           int(2 * window[2] / 3 + ((window[2] - 2 * window[2] / 3) / 2)) + 50,
-    #           int(window[3]) - 50)
-    # show_text(img, "right_eye_tilt_factor_height: " + str(right_eye_tilt_factor_height), int(2 * window[2] / 3) + 50,
-    #           int(window[3]) - 25)
-    # show_text(img, "right_eye_tilt_factor_width: " + str(right_eye_tilt_factor_width),
-    #           int(2 * window[2] / 3 + ((window[2] - 2 * window[2] / 3) / 2)) + 50,
-    #           int(window[3]) - 25)
+
+
+def show_measure_points_button(img):
+    img = cv2.rectangle(img, (int(window[2] / 2) - 150, int(window[3]) - 200),
+                        (int(window[2]/2) + 150, int(window[3]) - 100), (70, 200, 10), -1)
+    show_text(img, "Hold to measure", int(window[2] / 2) - 70, int(window[3]) - 150)
+
+
+def show_evaluation_metrics(img):
+    global evaluation_data
+    ideal_metrics = evaluation_data.ideal_stage.get_stage_metrics(calculated_values)
+    edge_metrics = evaluation_data.edge_stage.get_stage_metrics(calculated_values)
+    dark_metrics = evaluation_data.dark_stage.get_stage_metrics(calculated_values)
+    turn_metrics = evaluation_data.turn_stage.get_stage_metrics(calculated_values)
+
+    show_text(img, "Evaluation completed", int(window[2] / 2) - 100, 20)
 
 
 def show_ui(img):
@@ -364,21 +303,15 @@ def show_ui(img):
     img = cv2.rectangle(img, (20, int(window[3] / 2) + 70), (40, int(window[3] / 2) + 90),
                         (0, 200, 200), -1)
 
-    # show_text(img, "x: " + str(angles[0]), 20, window[3] - 190)
-    # show_text(img, "y: " + str(angles[1]), 20, window[3] - 160)
-    # show_text(img, "z: " + str(angles[2]), 20, window[3] - 130)
-    #
-    # show_text(img, "x_cal: " + str(fractions.Fraction(x_cal / math.pi).limit_denominator(10)) + "pi", 20,
-    #           window[3] - 100)
-    # show_text(img, "y_cal: " + str(fractions.Fraction(y_cal / math.pi).limit_denominator(10)) + "pi", 20,
-    #           window[3] - 70)
-    # show_text(img, "z_cal: " + str(fractions.Fraction(z_cal / math.pi).limit_denominator(10)) + "pi", 20,
-    #           window[3] - 40)
+    # show evaluation metrics if evaluation completed
+    if evaluation_data.get_completed_stages_count() == 4:
+        show_evaluation_metrics(img)
 
     if calibration_values.calibration_completed is False:
         show_calibration_ui(img)
 
     if calibration_values.evaluation_happening:
+        show_measure_points_button(img)
         if evaluation_data.get_completed_stages_count() == 0:
             show_ideal_evaluation_ui(img)
         elif evaluation_data.get_completed_stages_count() == 1:
@@ -394,90 +327,32 @@ def show_ui(img):
 def show_dark_evaluation_ui(img):
     show_text(img, "Dark conditions evaluation", int(window[2]/2)-100, 20)
 
-    img = cv2.circle(img, (int(window[2] / 2) + 400, int(window[3] / 2)), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2) + 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) + 400, int(window[3] / 2) + 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) - 400, int(window[3] / 2)), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2) - 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) - 400, int(window[3] / 2) - 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) - 400, int(window[3] / 2) + 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) + 400, int(window[3] / 2) - 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2)), 20,
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.dark_stage.get_completed_evaluation_points_count()], 20,
                      (200, 200, 200), 2)
 
 
 def show_turn_evaluation_ui(img):
     show_text(img, "Various head pose conditions evaluation", int(window[2] / 2) - 100, 20)
 
-    img = cv2.circle(img, (int(window[2] / 2) + 400, int(window[3] / 2)), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2) + 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) + 400, int(window[3] / 2) + 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) - 400, int(window[3] / 2)), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2) - 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) - 400, int(window[3] / 2) - 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) - 400, int(window[3] / 2) + 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2) + 400, int(window[3] / 2) - 400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2)), 20,
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.turn_stage.get_completed_evaluation_points_count()], 20,
                      (200, 200, 200), 2)
 
 
 def show_ideal_evaluation_ui(img):
     show_text(img, "Ideal conditions evaluation", int(window[2] / 2) - 100, 20)
 
-    img = cv2.circle(img, (int(window[2]/2)+400, int(window[3] / 2)), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2)+400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2)+400, int(window[3] / 2)+400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2)-400, int(window[3] / 2)), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2)-400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2)-400, int(window[3] / 2)-400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2)-400, int(window[3] / 2)+400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2)+400, int(window[3] / 2)-400), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2] / 2), int(window[3] / 2)), 20,
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.ideal_stage.get_completed_evaluation_points_count()], 20,
                      (200, 200, 200), 2)
 
 
 def show_edge_evaluation_ui(img):
     show_text(img, "Edge conditions evaluation", int(window[2] / 2) - 100, 20)
 
-    img = cv2.circle(img, (100, 100), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2])-100, int(window[3]) - 100), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (100, int(window[3]) - 100), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2]) - 100, 100), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (300, 300), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2]) - 300, int(window[3]) - 300), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (300, int(window[3]) - 300), 20,
-                     (200, 200, 200), 2)
-    img = cv2.circle(img, (int(window[2]) - 300, 300), 20,
+    img = cv2.circle(img, calculated_values.edge_evaluation_points_offsets[
+        evaluation_data.edge_stage.get_completed_evaluation_points_count()], 20,
                      (200, 200, 200), 2)
 
 
@@ -609,19 +484,19 @@ def calculate_iris_points(f_l, img):
 
 
 def calculate_face_distance(f_l, img):
-    global forehead_chin_landmark_distance
+    global calculated_values
     chin_landmark = (f_l.landmark[constants.chin_landmark_index].x * img.shape[1],
                      f_l.landmark[constants.chin_landmark_index].y * img.shape[0],
                      f_l.landmark[constants.chin_landmark_index].z * img.shape[1])
     forehead_landmark = (f_l.landmark[constants.forehead_landmark_index].x * img.shape[1],
                          f_l.landmark[constants.forehead_landmark_index].y * img.shape[0],
                          f_l.landmark[constants.forehead_landmark_index].z * img.shape[1])
-    forehead_chin_landmark_distance = np.sqrt(
+    calculated_values.forehead_chin_landmark_distance = np.sqrt(
         pow(chin_landmark[0] - forehead_landmark[0], 2) +
         pow(chin_landmark[1] - forehead_landmark[1], 2) +
         pow(chin_landmark[2] - forehead_landmark[2], 2))
 
-    f_d = calibration_values.face_height_on_60cm_away * 60 / forehead_chin_landmark_distance
+    f_d = calibration_values.face_height_on_60cm_away * 60 / calculated_values.forehead_chin_landmark_distance
     return f_d
 
 
@@ -641,12 +516,47 @@ def calculate_face_center_screen_cal(img, wndw):
     return f_c_s_cal
 
 
+def show_all_indexes(f_l, img):
+    i_ = 0
+    for landmark in f_l.landmark:
+        img = cv2.putText(img, str(i_),
+                          (int(landmark.x * img.shape[1]), int(landmark.y * img.shape[0])),
+                          cv2.FONT_HERSHEY_PLAIN, 0.7,
+                          (0, 255, 255), 0)
+        i_ += 1
+
+
+def show_whole_mesh(f_l, mp_f_m, mp_d_s, img):
+    mp_drawing.draw_landmarks(
+        image=img,
+        landmark_list=f_l,
+        connections=mp_f_m.FACEMESH_TESSELATION,
+        landmark_drawing_spec=None,
+        connection_drawing_spec=mp_d_s.get_default_face_mesh_tesselation_style())
+    mp_drawing.draw_landmarks(
+        image=img,
+        landmark_list=f_l,
+        connections=mp_f_m.FACEMESH_CONTOURS,
+        landmark_drawing_spec=None,
+        connection_drawing_spec=mp_d_s.get_default_face_mesh_contours_style())
+    mp_drawing.draw_landmarks(
+        image=img,
+        landmark_list=f_l,
+        connections=mp_f_m.FACEMESH_IRISES,
+        landmark_drawing_spec=None,
+        connection_drawing_spec=mp_d_s.get_default_face_mesh_iris_connections_style())
+
+
 with mp_face_mesh.FaceMesh(max_num_faces=1,
                            refine_landmarks=True,
                            min_detection_confidence=0.5,
                            min_tracking_confidence=0.99) as face_mesh:
     while cap.isOpened():
         window = cv2.getWindowImageRect('screen')
+
+        calculated_values.set_evaluation_points()
+        calculated_values.window = window
+
         screen = np.zeros((window[3], window[2], 3), dtype='uint8')
         screen = cv2.rectangle(screen, (0, 0), (window[2] - 1, window[3] - 1), (85, 80, 78), -1)
 
@@ -682,19 +592,13 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
             for face_landmarks in results.multi_face_landmarks:
 
                 # show all indexes
-                # i = 0
-                # for landmark in face_landmarks.landmark:
-                #     image = cv2.putText(image, str(i),
-                #                         (int(landmark.x * image.shape[1]), int(landmark.y * image.shape[0])),
-                #                         cv2.FONT_HERSHEY_PLAIN, 0.7,
-                #                         (0, 255, 255), 0)
-                #     i += 1
+                # show_all_indexes(face_landmarks, image)
 
                 # iris points
                 keypoint_left, keypoint_right = calculate_iris_points(face_landmarks, image)
 
                 # face distance
-                face_distance = calculate_face_distance(face_landmarks, image)
+                calculated_values.face_distance = calculate_face_distance(face_landmarks, image)
 
                 # face position
                 face_center_screen_cal = calculate_face_center_screen_cal(image, window)
@@ -728,17 +632,17 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                 # The distortion parameters
                 dist_matrix = np.zeros((4, 1), dtype=np.float64)
 
-                face_anchor_initial_points_3d = np.array(face_anchor_initial_points_3d, np.float32)
-                if np.any(face_anchor_initial_points_3d):
+                calculated_values.face_anchor_initial_points_3d = np.array(calculated_values.face_anchor_initial_points_3d, np.float32)
+                if np.any(calculated_values.face_anchor_initial_points_3d):
                     # Solve PnP
                     if np.any(calibration_values.rvec_init) and np.any(calibration_values.tvec_init):
-                        success, rot_vec, trans_vec = cv2.solvePnP(face_anchor_initial_points_3d, face_2d, cam_matrix,
+                        success, rot_vec, trans_vec = cv2.solvePnP(calculated_values.face_anchor_initial_points_3d, face_2d, cam_matrix,
                                                                    dist_matrix, flags=cv2.SOLVEPNP_ITERATIVE,
                                                                    useExtrinsicGuess=True,
                                                                    rvec=calibration_values.rvec_init,
                                                                    tvec=calibration_values.tvec_init)
                     else:
-                        success, rot_vec, trans_vec = cv2.solvePnP(face_anchor_initial_points_3d, face_2d, cam_matrix,
+                        success, rot_vec, trans_vec = cv2.solvePnP(calculated_values.face_anchor_initial_points_3d, face_2d, cam_matrix,
                                                                    dist_matrix, flags=cv2.SOLVEPNP_ITERATIVE)
                         if trans_vec[2] > 0:
                             calibration_values.rvec_init = rot_vec
@@ -751,27 +655,27 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                     angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
 
                     # Convert to radians
-                    x_angle = angles[0] * np.pi / 180
-                    y_angle = angles[1] * np.pi / 180
-                    z_angle = angles[2] * np.pi / 180
+                    calculated_values.x_angle = angles[0] * np.pi / 180
+                    calculated_values.y_angle = angles[1] * np.pi / 180
+                    calculated_values.z_angle = angles[2] * np.pi / 180
 
                     # + x_off and so on
-                    x_cal = x_angle + calibration_values.x_off
-                    y_cal = y_angle + calibration_values.y_off
-                    z_cal = z_angle + calibration_values.z_off
+                    calculated_values.x_cal = calculated_values.x_angle + calibration_values.x_off
+                    calculated_values.y_cal = calculated_values.y_angle + calibration_values.y_off
+                    calculated_values.z_cal = calculated_values.z_angle + calibration_values.z_off
 
                     face_vector = [
-                        (math.cos(z_cal) * math.sin(y_cal) * math.cos(x_cal) + math.sin(z_cal) * math.sin(
-                            x_cal)),
-                        (math.sin(z_cal) * math.sin(y_cal) * math.cos(x_cal) - math.cos(z_cal) * math.sin(
-                            x_cal)),
-                        (math.cos(y_cal) * math.cos(x_cal))]
+                        (math.cos(calculated_values.z_cal) * math.sin(calculated_values.y_cal) * math.cos(calculated_values.x_cal) + math.sin(calculated_values.z_cal) * math.sin(
+                            calculated_values.x_cal)),
+                        (math.sin(calculated_values.z_cal) * math.sin(calculated_values.y_cal) * math.cos(calculated_values.x_cal) - math.cos(calculated_values.z_cal) * math.sin(
+                            calculated_values.x_cal)),
+                        (math.cos(calculated_values.y_cal) * math.cos(calculated_values.x_cal))]
 
-                    scaled_face_vector = [
-                        (math.cos(z_cal) * math.sin(y_cal) * math.cos(x_cal) + math.sin(z_cal) * math.sin(
-                            x_cal)) * 60 / face_distance,
-                        (math.sin(z_cal) * math.sin(y_cal) * math.cos(x_cal) - math.cos(z_cal) * math.sin(
-                            x_cal)) * 60 / face_distance]
+                    calculated_values.scaled_face_vector = [
+                        (math.cos(calculated_values.z_cal) * math.sin(calculated_values.y_cal) * math.cos(calculated_values.x_cal) + math.sin(calculated_values.z_cal) * math.sin(
+                            calculated_values.x_cal)) * 60 / calculated_values.face_distance,
+                        (math.sin(calculated_values.z_cal) * math.sin(calculated_values.y_cal) * math.cos(calculated_values.x_cal) - math.cos(calculated_values.z_cal) * math.sin(
+                            calculated_values.x_cal)) * 60 / calculated_values.face_distance]
 
                     axisBoxes = np.float32([[0, 0, 0],
                                             [50, 0, 0],
@@ -782,8 +686,8 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                                                            cam_matrix, dist_matrix)[0]
 
                     # p11 = (int(nose_landmark[0]), int(nose_landmark[1]))
-                    # p22 = (int(nose_landmark[0] + face_vector[0] * 50 * 60 / face_distance),
-                    #        int(nose_landmark[1] + face_vector[1] * 50 * 60 / face_distance))
+                    # p22 = (int(nose_landmark[0] + face_vector[0] * 50 * 60 / calculated_values.face_distance),
+                    #        int(nose_landmark[1] + face_vector[1] * 50 * 60 / calculated_values.face_distance))
                     #
                     # cv2.line(image, p11, p22, (255, 255, 255), 3)
 
@@ -801,13 +705,13 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                         show_text(image, "y", p3[0], p3[1])
                         show_text(image, "z", p4[0], p4[1])
 
-                    face_reprojection = cv2.projectPoints(face_anchor_initial_points_3d, rot_vec, trans_vec,
+                    face_reprojection = cv2.projectPoints(calculated_values.face_anchor_initial_points_3d, rot_vec, trans_vec,
                                                           cam_matrix, dist_matrix)[0]
                     for point in face_reprojection:
                         image = cv2.circle(image, (int(point[0][0]), int(point[0][1])), 1, (0, 255, 255))
 
-                    face_direction_offset = [((face_distance + calibration_values.face_distance_offset) * face_vector[0]) / face_vector[2],
-                                             ((face_distance + calibration_values.face_distance_offset) * face_vector[1]) / face_vector[2]]
+                    face_direction_offset = [((calculated_values.face_distance + calibration_values.face_distance_offset) * face_vector[0]) / face_vector[2],
+                                             ((calculated_values.face_distance + calibration_values.face_distance_offset) * face_vector[1]) / face_vector[2]]
 
                     face_point = [face_center_screen_cal[0] + face_direction_offset[0],
                                   face_center_screen_cal[1] + face_direction_offset[1]]
@@ -843,28 +747,28 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                     # image = cv2.circle(image, (int(eyes_anchor_points_cal[1][0][0]), int(eyes_anchor_points_cal[1][0][1])), 2,
                     #                    (0, 255, 255), 1)
 
-                    face_anchor_initial_points_2d = np.array(face_anchor_initial_points_2d, np.float32)
+                    calculated_values.face_anchor_initial_points_2d = np.array(calculated_values.face_anchor_initial_points_2d, np.float32)
                     face_anchor_points = np.array(face_2d, np.float32)
-                    h, status = cv2.findHomography(face_anchor_initial_points_2d[0:4], face_anchor_points[0:4],
+                    h, status = cv2.findHomography(calculated_values.face_anchor_initial_points_2d[0:4], face_anchor_points[0:4],
                                                    method=cv2.RANSAC,
                                                    ransacReprojThreshold=1, mask=None, maxIters=1, confidence=1)
                     if h is not None:
-                        eyes_anchor_initial_points = np.array(eyes_anchor_initial_points, np.float32)
-                        eyes_anchor_points = [np.dot(h, [eyes_anchor_initial_points[0][0],
-                                                         eyes_anchor_initial_points[0][1], 1]),
-                                              np.dot(h, [eyes_anchor_initial_points[1][0],
-                                                         eyes_anchor_initial_points[1][1], 1])]
+                        calculated_values.eyes_anchor_initial_points = np.array(calculated_values.eyes_anchor_initial_points, np.float32)
+                        eyes_anchor_points = [np.dot(h, [calculated_values.eyes_anchor_initial_points[0][0],
+                                                         calculated_values.eyes_anchor_initial_points[0][1], 1]),
+                                              np.dot(h, [calculated_values.eyes_anchor_initial_points[1][0],
+                                                         calculated_values.eyes_anchor_initial_points[1][1], 1])]
                         eyes_anchor_points[0] /= eyes_anchor_points[0][2]
                         eyes_anchor_points[1] /= eyes_anchor_points[1][2]
 
                         eyes_anchor_points_cal = [[0, 0], [0, 0]]
-                        eyes_anchor_points_cal[0][0] = eyes_anchor_points[0][0] + scaled_face_vector[
+                        eyes_anchor_points_cal[0][0] = eyes_anchor_points[0][0] + calculated_values.scaled_face_vector[
                             0] * calibration_values.eyes_depth_offset
-                        eyes_anchor_points_cal[0][1] = eyes_anchor_points[0][1] + scaled_face_vector[
+                        eyes_anchor_points_cal[0][1] = eyes_anchor_points[0][1] + calculated_values.scaled_face_vector[
                             1] * calibration_values.eyes_depth_offset
-                        eyes_anchor_points_cal[1][0] = eyes_anchor_points[1][0] + scaled_face_vector[
+                        eyes_anchor_points_cal[1][0] = eyes_anchor_points[1][0] + calculated_values.scaled_face_vector[
                             0] * calibration_values.eyes_depth_offset
-                        eyes_anchor_points_cal[1][1] = eyes_anchor_points[1][1] + scaled_face_vector[
+                        eyes_anchor_points_cal[1][1] = eyes_anchor_points[1][1] + calculated_values.scaled_face_vector[
                             1] * calibration_values.eyes_depth_offset
 
                         image = cv2.circle(image, (int(eyes_anchor_points_cal[0][0]),
@@ -878,9 +782,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                     #
                     # # todo make for eyes
                     #
-                    # left_eye_direction_offset = [((face_distance + left_eye_distance_offset + keypoint_left[2]) *
+                    # left_eye_direction_offset = [((calculated_values.face_distance + left_eye_distance_offset + keypoint_left[2]) *
                     #                               eyes_vectors[0][0]) / eyes_vectors[0][2],
-                    #                              ((face_distance + face_distance_offset + keypoint_left[2]) *
+                    #                              ((calculated_values.face_distance + face_distance_offset + keypoint_left[2]) *
                     #                               eyes_vectors[0][1]) / eyes_vectors[0][2]]
                     #
                     # left_eye_center_screen = (window[2] * eyes_anchor_points_cal[0][0] / image.shape[1],
@@ -894,9 +798,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                     # left_eye_point_cal = [left_eye_point[0] + left_eye_point_correction[0],
                     #                       left_eye_point[1] + left_eye_point_correction[1]]
                     #
-                    # right_eye_direction_offset = [((face_distance + face_distance_offset + keypoint_right[2]) *
+                    # right_eye_direction_offset = [((calculated_values.face_distance + face_distance_offset + keypoint_right[2]) *
                     #                                eyes_vectors[0][0]) / eyes_vectors[0][2],
-                    #                               ((face_distance + face_distance_offset + keypoint_right[2]) *
+                    #                               ((calculated_values.face_distance + face_distance_offset + keypoint_right[2]) *
                     #                                eyes_vectors[0][1]) / eyes_vectors[0][2]]
                     #
                     # right_eye_center_screen = (window[2] * eyes_anchor_points_cal[0][0] / image.shape[1],
@@ -935,7 +839,7 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
 
                     # distance scaling
                     # total_gaze_point = (
-                    #     int(total_gaze_point[0] * face_distance / 60), int(total_gaze_point[1] * face_distance / 60))
+                    #     int(total_gaze_point[0] * calculated_values.face_distance / 60), int(total_gaze_point[1] * calculated_values.face_distance / 60))
 
                     # draw gaze point
 
@@ -982,29 +886,28 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                                                  int(left_gaze_point_fin[1] + window[3] / 2)), 20,
                                         (70, 70, 200), 2)
 
+                    # measure values for evaluation
+                    if calibration_values.evaluation_happening:
+                        if evaluation_data.get_completed_stages_count() == 4:
+                            calibration_values.evaluation_happening = False
+                            calibration_values.evaluation_measuring_points = False
+                        if calibration_values.evaluation_measuring_points:
+                            if evaluation_data.get_active_stage() is not None:
+                                temp = evaluation_data.get_active_stage().get_completed_evaluation_points_count()
+                                evaluation_data.add_points(current_point,
+                                                           (int(left_gaze_point_fin[0] + window[2] / 2),
+                                                            int(left_gaze_point_fin[1] + window[3] / 2)),
+                                                           (int(right_gaze_point_fin[0] + window[2] / 2),
+                                                            int(right_gaze_point_fin[1] + window[3] / 2)))
+                                if evaluation_data.get_active_stage() is not None:
+                                    if evaluation_data.get_active_stage().get_completed_evaluation_points_count() is not \
+                                            temp:
+                                        calibration_values.evaluation_measuring_points = False
+                                else:
+                                    calibration_values.evaluation_measuring_points = False
 
                 # show whole mesh
-                # mp_drawing.draw_landmarks(
-                #     image=image,
-                #     landmark_list=face_landmarks,
-                #     connections=mp_face_mesh.FACEMESH_TESSELATION,
-                #     landmark_drawing_spec=None,
-                #     connection_drawing_spec=mp_drawing_styles
-                #         .get_default_face_mesh_tesselation_style())
-                # mp_drawing.draw_landmarks(
-                #     image=image,
-                #     landmark_list=face_landmarks,
-                #     connections=mp_face_mesh.FACEMESH_CONTOURS,
-                #     landmark_drawing_spec=None,
-                #     connection_drawing_spec=mp_drawing_styles
-                #         .get_default_face_mesh_contours_style())
-                # mp_drawing.draw_landmarks(
-                #     image=image,
-                #     landmark_list=face_landmarks,
-                #     connections=mp_face_mesh.FACEMESH_IRISES,
-                #     landmark_drawing_spec=None,
-                #     connection_drawing_spec=mp_drawing_styles
-                #         .get_default_face_mesh_iris_connections_style())
+                # show_whole_mesh(face_landmarks, mp_face_mesh, mp_drawing_styles, image)
 
         else:
             face_detected = False

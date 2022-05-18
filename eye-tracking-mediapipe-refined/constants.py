@@ -1,4 +1,5 @@
 class Constants:
+    measured_points_per_metric = 10
     right_iris_index = 473
     left_iris_index = 468
     around_left_eye_cross_indexes = [143, 223, 189, 230]
