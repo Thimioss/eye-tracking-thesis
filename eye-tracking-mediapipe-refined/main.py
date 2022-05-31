@@ -509,10 +509,10 @@ def calculate_face_center_screen_cal(img, wndw):
 
     # face_center_image_offset = (face_center_image[0] - img.shape[1] / 2,
     #                             face_center_image[1] - img.shape[0] / 2)
-    f_c_s = (wndw[2] * face_center_image[0] / img.shape[1],
-             wndw[3] * face_center_image[1] / img.shape[0])
-    f_c_s_cal = (f_c_s[0] - calibration_values.face_position_correction_width,
-                 f_c_s[1] - calibration_values.face_position_correction_height)
+    calculated_values.face_center_screen = (wndw[2] * face_center_image[0] / img.shape[1],
+                                            wndw[3] * face_center_image[1] / img.shape[0])
+    f_c_s_cal = (calculated_values.face_center_screen[0] - calibration_values.face_position_correction_width,
+                 calculated_values.face_center_screen[1] - calibration_values.face_position_correction_height)
     return f_c_s_cal
 
 
@@ -547,6 +547,8 @@ def show_whole_mesh(f_l, mp_f_m, mp_d_s, img):
         connection_drawing_spec=mp_d_s.get_default_face_mesh_iris_connections_style())
 
 
+screen_diagonal_in_inches = gui.prompt("Enter screen diagonal size in inches", "Input info", "24")
+calculated_values.screen_diagonal_in_cm = int(screen_diagonal_in_inches) * 2.54
 with mp_face_mesh.FaceMesh(max_num_faces=1,
                            refine_landmarks=True,
                            min_detection_confidence=0.5,
