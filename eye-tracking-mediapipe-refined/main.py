@@ -1,5 +1,7 @@
 import collections
+import fileinput
 import fractions
+import os
 
 import cv2
 import copy
@@ -8,11 +10,13 @@ import mediapipe as mp
 import numpy as np
 import time
 import pyautogui as gui
+import csv
 
 from calculated_values import CalculatedValues
 from calibration_values import CalibrationValues
 from constants import Constants
 from evaluation_data import EvaluationData
+from state_values import StateValues
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -22,12 +26,15 @@ evaluation_data = EvaluationData()
 constants = Constants()
 calibration_values = CalibrationValues()
 calculated_values = CalculatedValues()
+state_values = StateValues()
 
 start_time = time.time()
 display_time = 2
 frames_counter = 0
 fps = 0
 angles = [0, 0, 0]
+f = None
+writer = None
 
 
 def nothing(x):
@@ -44,28 +51,52 @@ def get_contour_from_landmark_indexes(indexes, img):
     return cont
 
 
+def start_recording_to_file():
+    global f, writer
+    file_name = gui.prompt("Enter the name of the recording", "Input info", "")
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    f = open(root_dir+'//'+file_name, 'w', encoding='UTF8')
+    writer = csv.writer(f)
+
+
+def stop_recording_to_file():
+    global f, writer
+    writer = None
+    f.close()
+    f = None
+
+
 def mouse_event(event, x, y, flags, param):
-    global calibration_values, evaluation_data
+    global state_values, evaluation_data
     if event is cv2.EVENT_LBUTTONDOWN and 20 <= x < 40 and int(window[3] / 2) - 10 <= y < int(window[3] / 2) + 10:
-        if calibration_values.evaluation_happening:
+        if state_values.evaluation_happening:
             gui.alert("You cannot calibrate while evaluation is happening", "Error")
         else:
-            calibration_values.calibration_completed = False
+            state_values.calibration_completed = False
             reset_calibrations()
     elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x < 40 and int(window[3] / 2) + 30 <= y < int(window[3] / 2) + 50:
-        if calibration_values.evaluation_happening:
+        if state_values.evaluation_happening:
             gui.alert("Evaluation is happening", "Error")
         else:
-            calibration_values.calibration_completed = True
+            state_values.calibration_completed = True
     elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x < 40 and int(window[3] / 2) + 70 <= y < int(window[3] / 2) + 90:
-        if calibration_values.calibration_completed is False:
+        if state_values.calibration_completed is False:
             gui.alert("You cannot start evaluation without completing calibration", "Error")
-        elif calibration_values.evaluation_happening is True:
+        elif state_values.evaluation_happening is True:
             pass
         else:
-            calibration_values.evaluation_happening = True
+            state_values.evaluation_happening = True
+    elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x < 40 and int(window[3] / 2) + 110 <= y < int(window[3] / 2) + 130:
+        if state_values.calibration_completed is False:
+            gui.alert("You cannot start recording without completing calibration", "Error")
+        else:
+            state_values.recording_happening = not state_values.recording_happening
+            if state_values.recording_happening:
+                start_recording_to_file()
+            else:
+                stop_recording_to_file()
 
-    if calibration_values.calibration_completed is False:
+    if state_values.calibration_completed is False:
         if event is cv2.EVENT_LBUTTONDOWN and int(2 * window[2] / 3) <= x < int(
                 2 * window[2] / 3 + ((window[2] - 2 * window[2] / 3) / 2)) and int(2 * window[3] / 3) <= y < int(
                 2 * window[3] / 3 + ((window[3] - 2 * window[3] / 3) / 2)):
@@ -90,17 +121,18 @@ def mouse_event(event, x, y, flags, param):
     else:
         pass
 
-    if calibration_values.evaluation_happening:
+    if state_values.evaluation_happening:
         if event is cv2.EVENT_LBUTTONDOWN and int(window[2] / 2) - 150 <= x < int(window[2] / 2) + 150 \
            and int(window[3]) - 200 <= y < int(window[3]) - 100:
-            calibration_values.evaluation_measuring_points = True
+            state_values.evaluation_measuring_points = True
         elif event is cv2.EVENT_LBUTTONUP:
-            calibration_values.evaluation_measuring_points = False
+            state_values.evaluation_measuring_points = False
 
 
 def reset_calibrations():
-    global calibration_values
+    global calibration_values, state_values
     calibration_values = CalibrationValues()
+    state_values = StateValues()
 
 
 def get_calibrated_eye_depth_error(anchor_initial_points, keypoint, depth_offset, rec, tec, cmat, dmat):
@@ -291,7 +323,7 @@ def show_evaluation_metrics(img):
 
 
 def show_ui(img):
-    global calibration_values
+    global state_values
     show_text(img, "Restart calibration", 50, int(window[3] / 2))
     img = cv2.rectangle(img, (20, int(window[3] / 2) - 10), (40, int(window[3] / 2) + 10),
                         (0, 0, 200), -1)
@@ -303,14 +335,25 @@ def show_ui(img):
     img = cv2.rectangle(img, (20, int(window[3] / 2) + 70), (40, int(window[3] / 2) + 90),
                         (0, 200, 200), -1)
 
+    if state_values.recording_happening is False:
+        show_text(img, "Start recording", 50, int(window[3] / 2) + 120)
+        img = cv2.rectangle(img, (20, int(window[3] / 2) + 110), (40, int(window[3] / 2) + 130),
+                            (0, 0, 200), -1)
+    else:
+        img = cv2.circle(img, (window[2] - 200, 50), 20, (0, 0, 200), -1)
+        show_text(img, "Recording...", window[2] - 170, 50)
+        show_text(img, "Stop recording", 50, int(window[3] / 2) + 120)
+        img = cv2.rectangle(img, (20, int(window[3] / 2) + 110), (40, int(window[3] / 2) + 130),
+                            (0, 0, 200), -1)
+
     # show evaluation metrics if evaluation completed
     if evaluation_data.get_completed_stages_count() == 4:
         show_evaluation_metrics(img)
 
-    if calibration_values.calibration_completed is False:
+    if state_values.calibration_completed is False:
         show_calibration_ui(img)
 
-    if calibration_values.evaluation_happening:
+    if state_values.evaluation_happening:
         show_measure_points_button(img)
         if evaluation_data.get_completed_stages_count() == 0:
             show_ideal_evaluation_ui(img)
@@ -321,7 +364,7 @@ def show_ui(img):
         elif evaluation_data.get_completed_stages_count() == 3:
             show_turn_evaluation_ui(img)
         elif evaluation_data.get_completed_stages_count() == 4:
-            calibration_values.evaluation_happening = False
+            state_values.evaluation_happening = False
 
 
 def show_dark_evaluation_ui(img):
@@ -444,30 +487,6 @@ def show_fps(img):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
 
-# initiate screen interface
-cv2.namedWindow('screen', cv2.WINDOW_FREERATIO)
-cv2.setWindowProperty('screen', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-# initiate webcam input:
-drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
-cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-cv2.namedWindow('image')
-cv2.createTrackbar('smoothing_past_values_count', 'image', 0, 15, nothing)
-cv2.createTrackbar('smoothing_landmarks_count', 'image', 0, 15, nothing)
-
-# calibration with mouse event
-cv2.setMouseCallback('screen', mouse_event)
-
-# average smoothing arrays
-offset_history = np.array(
-    [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],
-     [0, 0]])
-
-landmarks_history = np.zeros([10, 4, 3])
-
-
 def calculate_iris_points(f_l, img):
     left_iris_landmark = f_l.landmark[constants.left_iris_index]
     k_l = [left_iris_landmark.x * img.shape[1],
@@ -545,6 +564,30 @@ def show_whole_mesh(f_l, mp_f_m, mp_d_s, img):
         connections=mp_f_m.FACEMESH_IRISES,
         landmark_drawing_spec=None,
         connection_drawing_spec=mp_d_s.get_default_face_mesh_iris_connections_style())
+
+
+# initiate screen interface
+cv2.namedWindow('screen', cv2.WINDOW_FREERATIO)
+cv2.setWindowProperty('screen', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+# initiate webcam input:
+drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cv2.namedWindow('image')
+cv2.createTrackbar('smoothing_past_values_count', 'image', 0, 15, nothing)
+cv2.createTrackbar('smoothing_landmarks_count', 'image', 0, 15, nothing)
+
+# calibration with mouse event
+cv2.setMouseCallback('screen', mouse_event)
+
+# average smoothing arrays
+offset_history = np.array(
+    [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],
+     [0, 0]])
+
+landmarks_history = np.zeros([10, 4, 3])
 
 
 screen_diagonal_in_inches = gui.prompt("Enter screen diagonal size in inches", "Input info", "24")
@@ -888,12 +931,18 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                                                  int(left_gaze_point_fin[1] + window[3] / 2)), 20,
                                         (70, 70, 200), 2)
 
+                    # record values to file
+                    if state_values.recording_happening:
+                        if writer is not None:
+                            row = [int(right_gaze_point_fin[0] + window[2] / 2), int(right_gaze_point_fin[1] + window[3] / 2), int(left_gaze_point_fin[0] + window[2] / 2), int(left_gaze_point_fin[1] + window[3] / 2), smooth_point[0], smooth_point[1], time.time()]
+                            writer.writerow(row)
+
                     # measure values for evaluation
-                    if calibration_values.evaluation_happening:
+                    if state_values.evaluation_happening:
                         if evaluation_data.get_completed_stages_count() == 4:
-                            calibration_values.evaluation_happening = False
-                            calibration_values.evaluation_measuring_points = False
-                        if calibration_values.evaluation_measuring_points:
+                            state_values.evaluation_happening = False
+                            state_values.evaluation_measuring_points = False
+                        if state_values.evaluation_measuring_points:
                             if evaluation_data.get_active_stage() is not None:
                                 temp = evaluation_data.get_active_stage().get_completed_evaluation_points_count()
                                 evaluation_data.add_points(current_point,
@@ -904,9 +953,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                                 if evaluation_data.get_active_stage() is not None:
                                     if evaluation_data.get_active_stage().get_completed_evaluation_points_count() is not \
                                             temp:
-                                        calibration_values.evaluation_measuring_points = False
+                                        state_values.evaluation_measuring_points = False
                                 else:
-                                    calibration_values.evaluation_measuring_points = False
+                                    state_values.evaluation_measuring_points = False
 
                 # show whole mesh
                 # show_whole_mesh(face_landmarks, mp_face_mesh, mp_drawing_styles, image)

@@ -1,8 +1,5 @@
 class CalibrationValues:
     def __init__(self):
-        self.evaluation_measuring_points = False
-        self.calibration_completed = False
-        self.evaluation_happening = False
         self.face_height_on_60cm_away = 1
         self.face_position_correction_width = 0
         self.face_position_correction_height = 0
