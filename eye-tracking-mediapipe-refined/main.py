@@ -11,6 +11,8 @@ import numpy as np
 import time
 import pyautogui as gui
 import csv
+import json
+import jsonpickle
 
 from calculated_values import CalculatedValues
 from calibration_values import CalibrationValues
@@ -35,6 +37,7 @@ fps = 0
 angles = [0, 0, 0]
 f = None
 writer = None
+video_writer = None
 
 
 def nothing(x):
@@ -51,17 +54,80 @@ def get_contour_from_landmark_indexes(indexes, img):
     return cont
 
 
+def make_nd_arrays_lists(calc, calib):
+    calc.eyes_anchor_initial_points = calc.eyes_anchor_initial_points.tolist()
+    calc.face_anchor_initial_points_3d = calc.face_anchor_initial_points_3d.tolist()
+    calc.face_anchor_initial_points_2d = calc.face_anchor_initial_points_2d.tolist()
+    calib.rvec_init = calib.rvec_init.tolist()
+    calib.tvec_init = calib.tvec_init.tolist()
+
+
+def save_values_to_json(name, dir):
+    global calibration_values, calculated_values
+    calc_val = copy.copy(calculated_values)
+    calib_val = copy.copy(calibration_values)
+    make_nd_arrays_lists(calc_val, calib_val)
+
+    calc_val_json = json.dumps(calc_val.__dict__)
+    calib_val_json = json.dumps(calib_val.__dict__)
+    with open(name+'_calc_val.json', 'w') as outfile:
+        json.dump(calc_val_json, outfile)
+    with open(name+'_calib_val.json', 'w') as outfile:
+        json.dump(calib_val_json, outfile)
+
+
+def make_lists_nd_arrays(calc, calib):
+    calc.eyes_anchor_initial_points = np.array(calc.eyes_anchor_initial_points)
+    calc.face_anchor_initial_points_3d = np.array(calc.face_anchor_initial_points_3d)
+    calc.face_anchor_initial_points_2d = np.array(calc.face_anchor_initial_points_2d)
+    calib.rvec_init = np.array(calib.rvec_init)
+    calib.tvec_init = np.array(calib.tvec_init)
+
+
+def load_values_from_json(name, dir):
+    global calibration_values, calculated_values
+    with open(name+'_calc_val.json') as json_file:
+        calc_val_json = json.load(json_file)
+    with open(name+'_calib_val.json') as json_file:
+        calib_val_json = json.load(json_file)
+
+    calc_val_dict = jsonpickle.decode(calc_val_json)
+    calib_val_dict = jsonpickle.decode(calib_val_json)
+
+    calc_val = CalculatedValues()
+    calc_val.set_values_from_dictionary(calc_val_dict)
+    calib_val = CalibrationValues()
+    calib_val.set_values_from_dictionary(calib_val_dict)
+
+    make_lists_nd_arrays(calc_val, calib_val)
+
+    calibration_values = calib_val
+    calculated_values = calc_val
+
+
+
+
 def start_recording_to_file():
-    global f, writer
+    global f, writer, video_writer
     file_name = gui.prompt("Enter the name of the recording", "Input info", "")
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    f = open(root_dir+'//'+file_name, 'w', encoding='UTF8')
+    save_values_to_json(file_name, root_dir)
+    f = open(root_dir+'//'+file_name+'.csv', 'a', newline='')
     writer = csv.writer(f)
+    writer.writerow(
+        ['Left_Gaze_Point_On_Display_Area_X', 'Right_Gaze_Point_On_Display_Area_X',
+         'Left_Gaze_Point_On_Display_Area_Y', 'Right_Gaze_Point_On_Display_Area_Y', 'Date_time'])
+    # record video
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    video_writer = cv2.VideoWriter(file_name+'.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 20, (width, height))
 
 
 def stop_recording_to_file():
-    global f, writer
+    global f, writer, video_writer
+    gui.alert("Recording complete", "Alert")
     writer = None
+    video_writer = None
     f.close()
     f = None
 
@@ -607,6 +673,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
 
         success, image = cap.read()
         pure_image = copy.copy(image)
+        if state_values.recording_happening:
+            video_writer.write(image)
+
         if not success:
             print("Ignoring empty camera frame.")
             # If loading a video, use 'break' instead of 'continue'.
@@ -934,7 +1003,11 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                     # record values to file
                     if state_values.recording_happening:
                         if writer is not None:
-                            row = [int(right_gaze_point_fin[0] + window[2] / 2), int(right_gaze_point_fin[1] + window[3] / 2), int(left_gaze_point_fin[0] + window[2] / 2), int(left_gaze_point_fin[1] + window[3] / 2), smooth_point[0], smooth_point[1], time.time()]
+                            row = [int(left_gaze_point_fin[0] + window[2] / 2),
+                                   int(right_gaze_point_fin[0] + window[2] / 2),
+                                   int(left_gaze_point_fin[1] + window[3] / 2),
+                                   int(right_gaze_point_fin[1] + window[3] / 2),
+                                   time.time()]
                             writer.writerow(row)
 
                     # measure values for evaluation
