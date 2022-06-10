@@ -1,6 +1,5 @@
 class CalculatedValues:
     def __init__(self):
-        self.last_file_name = ''
         self.screen_diagonal_in_cm = 24*2.54
         self.window = [0, 0, 1, 1]
         self.central_evaluation_points_offsets = [(0, 0), (400, 0), (0, 400), (400, 400), (-400, 0), (0, -400),
@@ -19,7 +18,6 @@ class CalculatedValues:
         self.camera_height_offset = 20
 
     def set_values_from_dictionary(self, dict):
-        self.last_file_name = dict['last_file_name']
         self.screen_diagonal_in_cm = dict['screen_diagonal_in_cm']
         self.window = dict['window']
         self.central_evaluation_points_offsets = dict['central_evaluation_points_offsets']
