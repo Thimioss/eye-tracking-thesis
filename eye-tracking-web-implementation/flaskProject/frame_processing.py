@@ -14,6 +14,7 @@ import csv
 import json
 import jsonpickle
 
+import heat_map_generator
 from calculated_values import CalculatedValues
 from calibration_values import CalibrationValues
 from constants import Constants
@@ -141,6 +142,45 @@ def stop_recording_to_file():
     video_writer = None
     f.close()
     f = None
+    show_heat_map()
+
+
+def show_heat_map():
+    global calculated_values
+    temp_right_eye_xs = []
+    temp_left_eye_xs = []
+    temp_right_eye_ys = []
+    temp_left_eye_ys = []
+    temp_xs = []
+    temp_ys = []
+    with open(calculated_values.last_file_name + '.csv', mode='r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        line_count = 0
+        for row_ in csv_reader:
+            if line_count == 0:
+                line_count += 1
+            if int(row_["Left_Gaze_Point_On_Display_Area_X"]) >= 0 and \
+                    int(row_["Right_Gaze_Point_On_Display_Area_X"]) >= 0 and \
+                    int(row_["Right_Gaze_Point_On_Display_Area_Y"]) >= 0 and \
+                    int(row_["Left_Gaze_Point_On_Display_Area_Y"]) >= 0 and \
+                    int(row_["Left_Gaze_Point_On_Display_Area_X"]) <= calculated_values.window[2] and \
+                    int(row_["Right_Gaze_Point_On_Display_Area_X"]) <= calculated_values.window[2] and \
+                    int(row_["Right_Gaze_Point_On_Display_Area_Y"]) <= calculated_values.window[3] and \
+                    int(row_["Left_Gaze_Point_On_Display_Area_Y"]) <= calculated_values.window[3]:
+                temp_left_eye_xs.append(int(row_["Left_Gaze_Point_On_Display_Area_X"]))
+                temp_right_eye_xs.append(int(row_["Right_Gaze_Point_On_Display_Area_X"]))
+                temp_right_eye_ys.append(int(row_["Right_Gaze_Point_On_Display_Area_Y"]))
+                temp_left_eye_ys.append(int(row_["Left_Gaze_Point_On_Display_Area_Y"]))
+                temp_xs.append(int((int(row_["Left_Gaze_Point_On_Display_Area_X"])+int(row_["Right_Gaze_Point_On_Display_Area_X"]))/2))
+                temp_ys.append(calculated_values.window[3] -
+                               int((int(row_["Right_Gaze_Point_On_Display_Area_Y"])+int(row_["Left_Gaze_Point_On_Display_Area_Y"]))/2))
+            line_count += 1
+    # temp_xs.append(calculated_values.window[2])
+    # temp_ys.append(calculated_values.window[3])
+    heatmap_image = heat_map_generator.generate_heat_map(np.array(temp_xs), np.array(temp_ys), calculated_values)
+    # cv2.namedWindow('heatmap', cv2.WINDOW_FREERATIO)
+    # cv2.setWindowProperty('heatmap', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    # cv2.imshow('heatmap', heatmap_image)
 
 
 def mouse_event(event, x, y, flags, param):
@@ -668,7 +708,7 @@ def process_frame(image, screen):
 
     landmarks_history = np.zeros([10, 4, 3])
 
-    if screen_diagonal_in_inches is 0:
+    if screen_diagonal_in_inches == 0:
         screen_diagonal_in_inches = gui.prompt("Enter screen diagonal size in inches", "Input info", "24")
     calculated_values.screen_diagonal_in_cm = int(screen_diagonal_in_inches) * 2.54
     with mp_face_mesh.FaceMesh(max_num_faces=1,

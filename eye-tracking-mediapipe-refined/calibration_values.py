@@ -63,3 +63,33 @@ class CalibrationValues:
         self.right_gaze_point_factor = dict['right_gaze_point_factor']
         self.rvec_init = dict['rvec_init']
         self.tvec_init = dict['tvec_init']
+
+    def reset(self):
+        self.face_height_on_60cm_away = 1
+        self.face_position_correction_width = 0
+        self.face_position_correction_height = 0
+        self.face_tilt_correction_width = 0
+        self.face_tilt_correction_height = 0
+        self.face_distance_offset = 0
+        self.left_eye_distance_offset = 0
+        self.right_eye_distance_offset = 0
+        self.face_tilt_factor_width = 1
+        self.face_tilt_factor_height = 1
+        self.face_point_correction = [0, 0]
+        self.left_eye_point_correction = [0, 0]
+        self.right_eye_point_correction = [0, 0]
+        self.left_eye_tilt_correction_width = 0
+        self.left_eye_tilt_correction_height = 0
+        self.right_eye_tilt_correction_width = 0
+        self.right_eye_tilt_correction_height = 0
+        self.left_eye_tilt_factor_height = 1
+        self.left_eye_tilt_factor_width = 1
+        self.right_eye_tilt_factor_height = 1
+        self.right_eye_tilt_factor_width = 1
+        self.left_eye_calibration_point_offset = (0, 0, 0)
+        self.right_eye_calibration_point_offset = (0, 0, 0)
+        self.eyes_depth_offset = 0
+        self.x_off, self.y_off, self.z_off = 0, 0, 0
+        self.left_gaze_point_offset, self.right_gaze_point_offset = [0, 0], [0, 0]
+        self.left_gaze_point_factor, self.right_gaze_point_factor = [1, 1], [1, 1]
+        self.rvec_init, self.tvec_init = [], []

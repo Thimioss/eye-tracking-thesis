@@ -1,0 +1,13 @@
+ .u-section-1 {
+  background-image: url("images/57a5d13169fd774143500d13ddaf6ae5ad06a9eec28023417b37481d0b5c58607ca22a051aa9327d804a1ad4c83f3f5f9153d85444730a3f3670a9_1280.jpg");
+  background-position: 50% 50%;
+  min-height: 100vh;
+}
+
+.u-section-1 .u-btn-1 {
+  border-style: none;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  margin: 1195px auto 60px;
+  padding: 8px 33px;
+}

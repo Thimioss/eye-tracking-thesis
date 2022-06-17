@@ -106,8 +106,18 @@ def load_values_from_json(name, dir):
     calculated_values = calc_val
 
 
+def show_image_for_heatmap(img):
+    cv2.namedWindow('heatmap', cv2.WINDOW_FREERATIO)
+    cv2.setMouseCallback('heatmap', heatmap_mouse_event)
+    cv2.setWindowProperty('heatmap', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.setWindowProperty('heatmap', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty('heatmap', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.imshow('heatmap', img)
+
+
 def start_recording_to_file():
-    global f, writer, video_writer, calculated_values
+    global f, writer, video_writer, calculated_values, state_values
+    state_values.recording_happening = True
     file_name = gui.prompt("Enter the name of the recording", "Input info", "")
     calculated_values.last_file_name = file_name
     root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -121,6 +131,16 @@ def start_recording_to_file():
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     video_writer = cv2.VideoWriter(file_name + '.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 20, (width, height))
+    if not constants.is_for_experiment:
+        bg_image = cv2.imread('bg_image.jpg')
+        show_text(bg_image, 'Press anywhere to stop recording', 20, 20)
+        show_image_for_heatmap(bg_image)
+
+
+def show_wait_message_heatmap():
+    heatmap = cv2.imread('bg_image.jpg')
+    show_text(heatmap, 'Please wait...', 20, 20)
+    cv2.imshow('heatmap', heatmap)
 
 
 def show_heat_map():
@@ -135,60 +155,71 @@ def show_heat_map():
         line_count = 0
         for row_ in csv_reader:
             if line_count == 0:
-                # print(f'Column names are {", ".join(row_)}')
                 line_count += 1
-            if int(row_["Left_Gaze_Point_On_Display_Area_X"]) >= 0 and \
-                    int(row_["Right_Gaze_Point_On_Display_Area_X"]) >= 0 and \
-                    int(row_["Right_Gaze_Point_On_Display_Area_Y"]) >= 0 and \
-                    int(row_["Left_Gaze_Point_On_Display_Area_Y"]) >= 0 and \
-                    int(row_["Left_Gaze_Point_On_Display_Area_X"]) <= calculated_values.window[2] and \
-                    int(row_["Right_Gaze_Point_On_Display_Area_X"]) <= calculated_values.window[2] and \
-                    int(row_["Right_Gaze_Point_On_Display_Area_Y"]) <= calculated_values.window[3] and \
-                    int(row_["Left_Gaze_Point_On_Display_Area_Y"]) <= calculated_values.window[3]:
+            if 0 <= int((int(row_["Left_Gaze_Point_On_Display_Area_X"]) + int(
+                    row_["Right_Gaze_Point_On_Display_Area_X"])) / 2) <= calculated_values.window[2] and \
+                    0 <= int((int(row_["Right_Gaze_Point_On_Display_Area_Y"]) + int(
+                row_["Left_Gaze_Point_On_Display_Area_Y"])) / 2) <= calculated_values.window[3]:
                 temp_left_eye_xs.append(int(row_["Left_Gaze_Point_On_Display_Area_X"]))
                 temp_right_eye_xs.append(int(row_["Right_Gaze_Point_On_Display_Area_X"]))
                 temp_right_eye_ys.append(int(row_["Right_Gaze_Point_On_Display_Area_Y"]))
                 temp_left_eye_ys.append(int(row_["Left_Gaze_Point_On_Display_Area_Y"]))
-                temp_xs.append(int((int(row_["Left_Gaze_Point_On_Display_Area_X"])+int(row_["Right_Gaze_Point_On_Display_Area_X"]))/2))
-                temp_ys.append(calculated_values.window[3]-int((int(row_["Right_Gaze_Point_On_Display_Area_Y"])+int(row_["Left_Gaze_Point_On_Display_Area_Y"]))/2))
-            # print(f'\t{row_["Left_Gaze_Point_On_Display_Area_X"]} , {row_["Right_Gaze_Point_On_Display_Area_X"]} , {row_["Left_Gaze_Point_On_Display_Area_Y"]} , {row_["Right_Gaze_Point_On_Display_Area_Y"]} , {row_["Date_time"]}')
+                temp_xs.append(int((int(row_["Left_Gaze_Point_On_Display_Area_X"]) + int(
+                    row_["Right_Gaze_Point_On_Display_Area_X"])) / 2))
+                temp_ys.append(calculated_values.window[3] -
+                               int((int(row_["Right_Gaze_Point_On_Display_Area_Y"]) + int(
+                                   row_["Left_Gaze_Point_On_Display_Area_Y"])) / 2))
             line_count += 1
-        # print(f'Processed {line_count} lines.')
     # temp_xs.append(calculated_values.window[2])
     # temp_ys.append(calculated_values.window[3])
-    heatmap_image = heat_map_generator.generate_heat_map(np.array(temp_xs), np.array(temp_ys), calculated_values.last_file_name, calculated_values)
-    cv2.namedWindow('heatmap', cv2.WINDOW_FREERATIO)
-    cv2.setWindowProperty('heatmap', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.imshow('heatmap', heatmap_image)
+    heatmap_image = heat_map_generator.generate_heat_map(np.array(temp_xs), np.array(temp_ys), calculated_values)
+    show_text(heatmap_image, 'Press anywhere to close window', 20, 20)
+    show_image_for_heatmap(heatmap_image)
 
+
+def hide_heatmap_window():
+    cv2.destroyWindow("heatmap")
 
 
 def stop_recording_to_file():
-    global f, writer, video_writer
-    gui.alert("Recording complete", "Alert")
+    global f, writer, video_writer, state_values
+    state_values.recording_happening = False
+    if constants.is_for_experiment:
+        gui.alert("Recording complete", "Success")
+    else:
+        show_wait_message_heatmap()
     writer = None
     video_writer = None
     f.close()
     f = None
-    show_heat_map()
+    if not constants.is_for_experiment:
+        show_heat_map()
 
 
-def mouse_event(event, x, y, flags, param):
+def heatmap_mouse_event(event, x_, y_, flags, param):
+    if event is cv2.EVENT_LBUTTONDOWN:
+        if state_values.recording_happening:
+            stop_recording_to_file()
+        else:
+            hide_heatmap_window()
+
+
+def window_mouse_event(event, x_, y_, flags, param):
     global state_values, evaluation_data, calculated_values
-    if event is cv2.EVENT_LBUTTONDOWN and 20 <= x < 40 and int(calculated_values.window[3] / 2) - 10 <= y < int(
+    if event is cv2.EVENT_LBUTTONDOWN and 20 <= x_ < 40 and int(calculated_values.window[3] / 2) - 10 <= y_ < int(
             calculated_values.window[3] / 2) + 10:
         if state_values.evaluation_happening:
             gui.alert("You cannot calibrate while evaluation is happening", "Error")
         else:
             state_values.calibration_completed = False
             reset_calibrations()
-    elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x < 40 and int(calculated_values.window[3] / 2) + 30 <= y < int(
+    elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x_ < 40 and int(calculated_values.window[3] / 2) + 30 <= y_ < int(
             calculated_values.window[3] / 2) + 50:
         if state_values.evaluation_happening:
             gui.alert("Evaluation is happening", "Error")
         else:
             state_values.calibration_completed = True
-    elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x < 40 and int(calculated_values.window[3] / 2) + 70 <= y < int(
+    elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x_ < 40 and int(calculated_values.window[3] / 2) + 70 <= y_ < int(
             calculated_values.window[3] / 2) + 90:
         if state_values.calibration_completed is False:
             gui.alert("You cannot start evaluation without completing calibration", "Error")
@@ -196,68 +227,71 @@ def mouse_event(event, x, y, flags, param):
             pass
         else:
             state_values.evaluation_happening = True
-    elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x < 40 and int(calculated_values.window[3] / 2) + 110 <= y < int(
+    elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x_ < 40 and int(calculated_values.window[3] / 2) + 110 <= y_ < int(
             calculated_values.window[3] / 2) + 130:
         if state_values.calibration_completed is False:
             gui.alert("You cannot start recording without completing calibration", "Error")
         else:
-            state_values.recording_happening = not state_values.recording_happening
-            if state_values.recording_happening:
+            if not state_values.recording_happening:
                 start_recording_to_file()
             else:
                 stop_recording_to_file()
+    elif event is cv2.EVENT_LBUTTONDOWN and 20 <= x_ < 40 and int(calculated_values.window[3] / 2) + 150 <= y_ < int(
+            calculated_values.window[3] / 2) + 170:
+        state_values.show_diagnostics = not state_values.show_diagnostics
 
     if state_values.calibration_completed is False:
-        if event is cv2.EVENT_LBUTTONDOWN and int(2 * calculated_values.window[2] / 3) <= x < int(
+        if event is cv2.EVENT_LBUTTONDOWN and int(2 * calculated_values.window[2] / 3) <= x_ < int(
                 2 * calculated_values.window[2] / 3 + (
                         (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) and int(
-            2 * calculated_values.window[3] / 3) <= y < int(
+            2 * calculated_values.window[3] / 3) <= y_ < int(
             2 * calculated_values.window[3] / 3 + (
                     (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)):
             calibrate_pose_estimation_and_anchor_points()
         elif event is cv2.EVENT_LBUTTONDOWN and int(
                 2 * calculated_values.window[2] / 3 + (
-                        (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) <= x < \
+                        (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) <= x_ < \
                 calculated_values.window[2] and int(
-            2 * calculated_values.window[3] / 3) <= y < int(
+            2 * calculated_values.window[3] / 3) <= y_ < int(
             2 * calculated_values.window[3] / 3 + (
                     (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)):
             calibrate_eyes_depth()
             calculate_face_distance_offset()
         elif event is cv2.EVENT_MBUTTONDOWN:
             calibrate_offsets()
-        elif event is cv2.EVENT_LBUTTONDOWN and int(2 * calculated_values.window[2] / 3) <= x < int(
+        elif event is cv2.EVENT_LBUTTONDOWN and int(2 * calculated_values.window[2] / 3) <= x_ < int(
                 2 * calculated_values.window[2] / 3 + (
                         (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) and int(
             2 * calculated_values.window[3] / 3 + (
-                    (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) <= y < \
+                    (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) <= y_ < \
                 calculated_values.window[3]:
             calculate_eye_correction_height_factor()
             # calculate_eyes_distance_offset()
         elif event is cv2.EVENT_LBUTTONDOWN and int(
                 2 * calculated_values.window[2] / 3 + (
-                        (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) <= x < \
+                        (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) <= x_ < \
                 calculated_values.window[2] and int(
             2 * calculated_values.window[3] / 3 + (
-                    (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) <= y < \
+                    (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) <= y_ < \
                 calculated_values.window[3]:
             calculate_eye_correction_width_factor()
     else:
         pass
 
     if state_values.evaluation_happening:
-        if event is cv2.EVENT_LBUTTONDOWN and int(calculated_values.window[2] / 2) - 150 <= x < int(
+        if event is cv2.EVENT_LBUTTONDOWN and int(calculated_values.window[2] / 2) - 150 <= x_ < int(
                 calculated_values.window[2] / 2) + 150 \
-                and int(calculated_values.window[3]) - 200 <= y < int(calculated_values.window[3]) - 100:
+                and int(calculated_values.window[3]) - 200 <= y_ < int(calculated_values.window[3]) - 100:
             state_values.evaluation_measuring_points = True
         elif event is cv2.EVENT_LBUTTONUP:
             state_values.evaluation_measuring_points = False
 
 
 def reset_calibrations():
-    global calibration_values, state_values
-    calibration_values = CalibrationValues()
-    state_values = StateValues()
+    global calibration_values, state_values, calculated_values
+    calibration_values.reset()
+    calculated_values.reset()
+    state_values.reset()
 
 
 def get_calibrated_eye_depth_error(anchor_initial_points, keypoint, depth_offset, rec, tec, cmat, dmat):
@@ -315,11 +349,11 @@ def calibrate_offsets():
     if face_detected:
         calibration_values.face_height_on_60cm_away = calculated_values.forehead_chin_landmark_distance
         calibration_values.face_position_correction_width = calculated_values.face_center_screen[0] - (
-                    calculated_values.window[2] / 2)
+                calculated_values.window[2] / 2)
         calibration_values.face_position_correction_height = calculated_values.face_center_screen[1] - (
-                    calculated_values.window[3] / 2)
-        calibration_values.face_point_correction = [screen.shape[1] / 2 - face_point[0],
-                                                    screen.shape[0] / 2 - face_point[1]]
+                calculated_values.window[3] / 2)
+        # calibration_values.face_point_correction = [calculated_values.window[2] / 2 - face_point[0],
+        #                                             calculated_values.window[3] / 2 - face_point[1]]
         calculate_eye_correction_offsets()
         calibration_values.x_off = -calculated_values.x_angle
         calibration_values.y_off = -calculated_values.y_angle
@@ -445,6 +479,31 @@ def show_measure_points_button(img):
     show_text(img, "Hold to measure", int(calculated_values.window[2] / 2) - 70, int(calculated_values.window[3]) - 150)
 
 
+def show_metrics(img, metrics, x_, y_):
+    if x_ == 20 and y_ == 20:
+        show_text(img, "Ideal metrics:", x_, y_)
+    elif x_ == 420 and y_ == 20:
+        show_text(img, "Edge metrics:", x_, y_)
+    elif x_ == 20 and y_ == 350:
+        show_text(img, "Dark metrics:", x_, y_)
+    elif x_ == 420 and y_ == 350:
+        show_text(img, "Turn metrics:", x_, y_)
+    show_text(img, "left_pixel_accuracy "+str(metrics.left_pixel_accuracy), x_, y_+20)
+    show_text(img, "right_pixel_accuracy "+str(metrics.right_pixel_accuracy), x_, y_+40)
+    show_text(img, "binocular_pixel_accuracy "+str(metrics.binocular_pixel_accuracy), x_, y_+60)
+    show_text(img, "left_pixel_precision "+str(metrics.left_pixel_precision), x_, y_+80)
+    show_text(img, "right_pixel_precision "+str(metrics.right_pixel_precision), x_, y_+100)
+    show_text(img, "binocular_pixel_precision "+str(metrics.binocular_pixel_precision), x_, y_+120)
+    show_text(img, "pixel_sd_precision "+str(metrics.pixel_sd_precision), x_, y_+140)
+    show_text(img, "left_angle_accuracy "+str(metrics.left_angle_accuracy), x_, y_+160)
+    show_text(img, "right_angle_accuracy "+str(metrics.right_angle_accuracy), x_, y_+180)
+    show_text(img, "binocular_angle_accuracy "+str(metrics.binocular_angle_accuracy), x_, y_+200)
+    show_text(img, "left_angle_precision "+str(metrics.left_angle_precision), x_, y_+220)
+    show_text(img, "right_angle_precision "+str(metrics.right_angle_precision), x_, y_+240)
+    show_text(img, "binocular_angle_precision "+str(metrics.binocular_angle_precision), x_, y_+260)
+    show_text(img, "angle_sd_precision "+str(metrics.angle_sd_precision), x_, y_+280)
+
+
 def show_evaluation_metrics(img):
     global evaluation_data
     ideal_metrics = evaluation_data.ideal_stage.get_stage_metrics(calculated_values)
@@ -454,13 +513,24 @@ def show_evaluation_metrics(img):
 
     show_text(img, "Evaluation completed", int(calculated_values.window[2] / 2) - 100, 20)
 
+    show_metrics(img, ideal_metrics, 20, 20)
+    show_metrics(img, edge_metrics, 420, 20)
+    show_metrics(img, dark_metrics, 20, 350)
+    show_metrics(img, turn_metrics, 420, 350)
+
+
+def show_diagnostics(img):
+    global calculated_values
+    show_text(img, "Face distance: " + str(calculated_values.face_distance), 50,
+              int(calculated_values.window[3] / 2) - 50)
+
 
 def show_ui(img):
     global state_values
     show_text(img, "Restart calibration", 50, int(calculated_values.window[3] / 2))
     img = cv2.rectangle(img, (20, int(calculated_values.window[3] / 2) - 10),
                         (40, int(calculated_values.window[3] / 2) + 10),
-                        (0, 0, 200), -1)
+                        (200, 100, 100), -1)
     show_text(img, "Calibration complete", 50, int(calculated_values.window[3] / 2) + 40)
     img = cv2.rectangle(img, (20, int(calculated_values.window[3] / 2) + 30),
                         (40, int(calculated_values.window[3] / 2) + 50),
@@ -471,7 +541,7 @@ def show_ui(img):
                         (40, int(calculated_values.window[3] / 2) + 90),
                         (0, 200, 200), -1)
 
-    if state_values.recording_happening is False:
+    if not state_values.recording_happening:
         show_text(img, "Start recording", 50, int(calculated_values.window[3] / 2) + 120)
         img = cv2.rectangle(img, (20, int(calculated_values.window[3] / 2) + 110),
                             (40, int(calculated_values.window[3] / 2) + 130),
@@ -483,6 +553,18 @@ def show_ui(img):
         img = cv2.rectangle(img, (20, int(calculated_values.window[3] / 2) + 110),
                             (40, int(calculated_values.window[3] / 2) + 130),
                             (0, 0, 200), -1)
+
+    if not state_values.show_diagnostics:
+        show_text(img, "Show diagnostics", 50, int(calculated_values.window[3] / 2) + 160)
+        img = cv2.rectangle(img, (20, int(calculated_values.window[3] / 2) + 150),
+                            (40, int(calculated_values.window[3] / 2) + 170),
+                            (0, 150, 200), -1)
+    else:
+        show_text(img, "Hide diagnostics", 50, int(calculated_values.window[3] / 2) + 160)
+        img = cv2.rectangle(img, (20, int(calculated_values.window[3] / 2) + 150),
+                            (40, int(calculated_values.window[3] / 2) + 170),
+                            (0, 150, 200), -1)
+        show_diagnostics(img)
 
     # show evaluation metrics if evaluation completed
     if evaluation_data.get_completed_stages_count() == 4:
@@ -506,7 +588,9 @@ def show_ui(img):
 
 
 def show_dark_evaluation_ui(img):
-    show_text(img, "Dark conditions evaluation", int(calculated_values.window[2] / 2) - 100, 20)
+    img = cv2.putText(img, "Dark conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
 
     img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
         evaluation_data.dark_stage.get_completed_evaluation_points_count()], 20,
@@ -514,7 +598,9 @@ def show_dark_evaluation_ui(img):
 
 
 def show_turn_evaluation_ui(img):
-    show_text(img, "Various head pose conditions evaluation", int(calculated_values.window[2] / 2) - 100, 20)
+    img = cv2.putText(img, "Various head pose conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
 
     img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
         evaluation_data.turn_stage.get_completed_evaluation_points_count()], 20,
@@ -522,7 +608,9 @@ def show_turn_evaluation_ui(img):
 
 
 def show_ideal_evaluation_ui(img):
-    show_text(img, "Ideal conditions evaluation", int(calculated_values.window[2] / 2) - 100, 20)
+    img = cv2.putText(img, "Ideal conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
 
     img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
         evaluation_data.ideal_stage.get_completed_evaluation_points_count()], 20,
@@ -530,7 +618,9 @@ def show_ideal_evaluation_ui(img):
 
 
 def show_edge_evaluation_ui(img):
-    show_text(img, "Edge conditions evaluation", int(calculated_values.window[2] / 2) - 100, 20)
+    img = cv2.putText(img, "Edge conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
 
     img = cv2.circle(img, calculated_values.edge_evaluation_points_offsets[
         evaluation_data.edge_stage.get_completed_evaluation_points_count()], 20,
@@ -558,29 +648,29 @@ def show_calibration_ui(img):
                         (200, 100, 70), -1)
 
     img = cv2.line(img, (int(2 * calculated_values.window[2] / 3 + (
-                (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)),
+            (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)),
                          int(2 * calculated_values.window[3] / 3)),
                    (int(2 * calculated_values.window[2] / 3 + (
-                               (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)),
+                           (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)),
                     int(calculated_values.window[3])),
                    (70, 70, 70), 2)
     img = cv2.line(img, (int(2 * calculated_values.window[2] / 3), int(2 * calculated_values.window[3] / 3 + (
-                (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2))),
+            (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2))),
                    (int(calculated_values.window[2]), int(2 * calculated_values.window[3] / 3 + (
-                               (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2))),
+                           (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2))),
                    (70, 70, 70), 2)
 
     show_text(img, "3",
               int(2 * calculated_values.window[2] / 3 + (
-                          (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
+                      (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
               int(2 * calculated_values.window[3] / 3) + 30)
     show_text(img, "Face the right edge of the screen,",
               int(2 * calculated_values.window[2] / 3 + (
-                          (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
+                      (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
               int(2 * calculated_values.window[3] / 3) + 50)
     show_text(img, "look into the camera and left click here",
               int(2 * calculated_values.window[2] / 3 + (
-                          (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
+                      (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
               int(2 * calculated_values.window[3] / 3) + 70)
 
     show_text(img, "1", int(2 * calculated_values.window[2] / 3) + 50,
@@ -593,46 +683,46 @@ def show_calibration_ui(img):
 
     show_text(img, "5", int(2 * calculated_values.window[2] / 3) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 30)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 30)
     show_text(img, "Face the center of the", int(2 * calculated_values.window[2] / 3) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 50)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 50)
     show_text(img, "screen (white point),",
               int(2 * calculated_values.window[2] / 3) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 70)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 70)
     show_text(img, "look at the bottom edge (pink point)",
               int(2 * calculated_values.window[2] / 3) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 90)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 90)
     show_text(img, "and left click here",
               int(2 * calculated_values.window[2] / 3) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 110)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 110)
 
     show_text(img, "6", int(2 * calculated_values.window[2] / 3 + (
-                (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
+            (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 30)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 30)
     show_text(img, "Face the center of the", int(2 * calculated_values.window[2] / 3 + (
-                (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
+            (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 50)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 50)
     show_text(img, "screen (white point),",
               int(2 * calculated_values.window[2] / 3 + (
-                          (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
+                      (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 70)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 70)
     show_text(img, "look at the right edge (yellow point)",
               int(2 * calculated_values.window[2] / 3 + (
-                          (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
+                      (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 90)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 90)
     show_text(img, "and left click here",
               int(2 * calculated_values.window[2] / 3 + (
-                          (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
+                      (calculated_values.window[2] - 2 * calculated_values.window[2] / 3) / 2)) + 50,
               int(2 * calculated_values.window[3] / 3 + (
-                          (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 110)
+                      (calculated_values.window[3] - 2 * calculated_values.window[3] / 3) / 2)) + 110)
 
     show_text(img, "2, 4", int(calculated_values.window[2] / 2) - 170, int(calculated_values.window[3] / 2) + 50)
     show_text(img, "Face and look at the middle of the", int(calculated_values.window[2] / 2) - 170,
@@ -746,7 +836,7 @@ cv2.createTrackbar('smoothing_past_values_count', 'image', 0, 15, nothing)
 cv2.createTrackbar('smoothing_landmarks_count', 'image', 0, 15, nothing)
 
 # calibration with mouse event
-cv2.setMouseCallback('screen', mouse_event)
+cv2.setMouseCallback('screen', window_mouse_event)
 
 # average smoothing arrays
 offset_history = np.array(
@@ -926,8 +1016,8 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                         show_text(image, "z", p4[0], p4[1])
 
                     face_reprojection = \
-                    cv2.projectPoints(calculated_values.face_anchor_initial_points_3d, rot_vec, trans_vec,
-                                      cam_matrix, dist_matrix)[0]
+                        cv2.projectPoints(calculated_values.face_anchor_initial_points_3d, rot_vec, trans_vec,
+                                          cam_matrix, dist_matrix)[0]
                     for point in face_reprojection:
                         image = cv2.circle(image, (int(point[0][0]), int(point[0][1])), 1, (0, 255, 255))
 
@@ -1050,6 +1140,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                     left_gaze_point_fin = [left_gaze_point_cal[0] * calibration_values.left_gaze_point_factor[0],
                                            left_gaze_point_cal[1] * calibration_values.left_gaze_point_factor[1]]
 
+                    left_gaze_point_fin = [left_gaze_point_fin[0] * np.square(calculated_values.face_distance / 60),
+                                           left_gaze_point_fin[1] * np.square(calculated_values.face_distance / 60)]
+
                     right_gaze_point = [(keypoint_right[0] - eyes_anchor_points_cal[1][0]),
                                         (keypoint_right[1] - eyes_anchor_points_cal[1][1])]
 
@@ -1058,6 +1151,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
 
                     right_gaze_point_fin = [right_gaze_point_cal[0] * calibration_values.right_gaze_point_factor[0],
                                             right_gaze_point_cal[1] * calibration_values.right_gaze_point_factor[1]]
+
+                    right_gaze_point_fin = [right_gaze_point_fin[0] * np.square(calculated_values.face_distance / 60),
+                                            right_gaze_point_fin[1] * np.square(calculated_values.face_distance / 60)]
 
                     total_gaze_point = [(left_gaze_point_fin[0] + right_gaze_point_fin[0]) / 2,
                                         (left_gaze_point_fin[1] + right_gaze_point_fin[1]) / 2]
@@ -1100,16 +1196,20 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                                         int(sum_y / smoothing_past_values_count))
 
                     # show point
-                    screen = cv2.circle(screen, smooth_point, 20,
-                                        (70, 200, 200), 2)
-                    screen = cv2.circle(screen, (int(face_point_cal[0]), int(face_point_cal[1])), 20,
-                                        (200, 200, 70), 2)
-                    screen = cv2.circle(screen, (int(right_gaze_point_fin[0] + calculated_values.window[2] / 2),
-                                                 int(right_gaze_point_fin[1] + calculated_values.window[3] / 2)), 20,
-                                        (70, 200, 70), 2)
-                    screen = cv2.circle(screen, (int(left_gaze_point_fin[0] + calculated_values.window[2] / 2),
-                                                 int(left_gaze_point_fin[1] + calculated_values.window[3] / 2)), 20,
-                                        (70, 70, 200), 2)
+                    if state_values.show_diagnostics:
+                        screen = cv2.circle(screen, smooth_point, 20,
+                                            (70, 200, 200), 2)
+                        screen = cv2.circle(screen, (int(face_point_cal[0]), int(face_point_cal[1])), 20,
+                                            (200, 200, 70), 2)
+                        screen = cv2.circle(screen, (int(right_gaze_point_fin[0] + calculated_values.window[2] / 2),
+                                                     int(right_gaze_point_fin[1] + calculated_values.window[3] / 2)), 20,
+                                            (70, 200, 70), 2)
+                        screen = cv2.circle(screen, (int(left_gaze_point_fin[0] + calculated_values.window[2] / 2),
+                                                     int(left_gaze_point_fin[1] + calculated_values.window[3] / 2)), 20,
+                                            (70, 70, 200), 2)
+                        screen = cv2.circle(screen, (int(face_center_screen_cal[0]),
+                                                     int(face_center_screen_cal[1])), 20,
+                                            (200, 200, 200), 2)
 
                     # record values to file
                     if state_values.recording_happening:

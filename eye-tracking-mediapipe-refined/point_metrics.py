@@ -20,9 +20,9 @@ class PointMetrics:
 
     def set_metrics_from_points_lists(self, evaluated_point, measured_both_points, measured_left_points,
                                       measured_right_points, calculated_values):
-        both_distance_mm = calculated_values.face_distance*10
-        left_distance_mm = calculated_values.face_distance*10
-        right_distance_mm = calculated_values.face_distance*10
+        both_distance_mm = 60*10
+        left_distance_mm = 60*10
+        right_distance_mm = 60*10
 
         left_mean = ((sum(measured_left_points[:][0]) / len(measured_left_points[:][0])),
                      (sum(measured_left_points[:][1]) / len(measured_left_points[:][1])))

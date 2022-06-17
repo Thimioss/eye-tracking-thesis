@@ -54,3 +54,15 @@ class CalculatedValues:
                                                (300, int(self.window[3]) - 300),
                                                (int(self.window[2]) - 300, 300)]
 
+    def reset(self):
+        self.face_anchor_initial_points_2d = ((0, 0), (0, 0), (0, 0), (0, 0))
+        self.face_anchor_initial_points_3d = []
+        self.eyes_anchor_initial_points = ((0, 0), (0, 0))
+        self.forehead_chin_landmark_distance = 0
+        self.face_center_screen = (0, 0)
+        self.face_distance = 60
+        self.x_angle, self.y_angle, self.z_angle = 0, 0, 0
+        self.x_cal, self.y_cal, self.z_cal = 0, 0, 0
+        self.scaled_face_vector = [1, 1]
+        self.camera_height_offset = 20
+

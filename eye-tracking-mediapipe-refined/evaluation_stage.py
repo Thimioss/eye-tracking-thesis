@@ -12,10 +12,11 @@ class EvaluationStage:
         self.points_count = points_count
 
     def get_stage_metrics(self, calculated_values):
-        sub_metrics = []
-        for e_point in self.evaluation_points_list:
-            sub_metrics.append(e_point.get_point_metrics(calculated_values))
-        self.__stage_metrics.set_metrics_from_sub_metrics(sub_metrics)
+        if self.__stage_metrics.pixel_sd_precision == -1:
+            sub_metrics = []
+            for e_point in self.evaluation_points_list:
+                sub_metrics.append(e_point.get_point_metrics(calculated_values))
+            self.__stage_metrics.set_metrics_from_sub_metrics(sub_metrics)
         return self.__stage_metrics
 
     def add_points(self, both_point, left_point, right_point):

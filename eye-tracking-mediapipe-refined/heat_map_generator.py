@@ -2,11 +2,13 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from matplotlib import cm
 from matplotlib.backends.backend_template import FigureCanvas
 from scipy.stats import kde
+from scipy.stats import stats
 
 
-def generate_heat_map(x, y, file_name, c_v):
+def generate_heat_map(x, y, c_v):
     nbins = 500
 
     # fig, axes = plt.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
@@ -21,7 +23,7 @@ def generate_heat_map(x, y, file_name, c_v):
     # axes[1, 0].hist2d(x, y, bins=nbins)
 
     # Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
-    k = kde.gaussian_kde(np.vstack([x, y]))
+    k = kde.gaussian_kde(np.vstack([x, y]), bw_method=0.1)
     xi, yi = np.mgrid[0:c_v.window[2]:nbins * 1j, 0:c_v.window[3]:nbins * 1j]
     zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
@@ -41,24 +43,89 @@ def generate_heat_map(x, y, file_name, c_v):
     h = c_v.window[3]*pixel_size_inch
     dpi = 1/pixel_size_inch
 
+    cmap = plt.get_cmap("viridis")
+
     fig = plt.figure(frameon=False)
     fig.set_size_inches(w, h)
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.set_axis_off()
     fig.add_axes(ax)
     ax = plt.gca()  # get the axis
-    ax.pcolormesh(xi, yi, zi.reshape(xi.shape), norm=colors.Normalize(), alpha=0.9)
-    # ax.set_ylim(ax.get_ylim()[::-1])  # invert the axis
-    # ax.xaxis.tick_top()  # and move the X-Axis
-    # ax.yaxis.tick_left()
+    ax.pcolormesh(xi, yi, zi.reshape(xi.shape), alpha=0.7, cmap=cmap)
+    # pcolormesh or contourf
+
     im = plt.imread('bg_image.jpg')
-    ax.imshow(im, extent=[xi.min(), c_v.window[2], yi.min(), c_v.window[3]], aspect='auto')
+    ax.imshow(im, extent=[0, c_v.window[2], 0, c_v.window[3]], aspect='auto')
 
-    # fig.tight_layout()
+    fig.savefig(c_v.last_file_name+'_heatmap.png', dpi=dpi)
 
-    fig.savefig(file_name+'_heatmap.png', dpi=dpi)
     plt.show()
 
-    image = cv2.imread(file_name+'_heatmap.png')
-
+    image = cv2.imread(c_v.last_file_name+'_heatmap.png')
     return image
+
+
+def rgb_white2alpha(rgb, ensure_increasing=True):
+    """
+    Convert a set of RGB colors to RGBA with maximum transparency.
+
+    The transparency is maximised for each color individually, assuming
+    that the background is white.
+
+    Parameters
+    ----------
+    rgb : array_like shaped (N, 3)
+        Original colors.
+    ensure_increasing : bool, default=False
+        Ensure that alpha values are strictly increasing.
+
+    Returns
+    -------
+    rgba : numpy.ndarray shaped (N, 4)
+        Colors with maximum possible transparency, assuming a white
+        background.
+    """
+    # The most transparent alpha we can use is given by the min of RGB
+    # Convert it from saturation to opacity
+    alpha = 1. - np.min(rgb, axis=1)
+    if ensure_increasing:
+        # Let's also ensure the alpha value is monotonically increasing
+        a_max = alpha[0]
+        for i, a in enumerate(alpha):
+            alpha[i] = a_max = np.maximum(a, a_max)
+    alpha = np.expand_dims(alpha, -1)
+    # Rescale colors to discount the white that will show through from transparency
+    rgb = (rgb + alpha - 1) / alpha
+    # Concatenate our alpha channel
+    return np.concatenate((rgb, alpha), axis=1)
+
+
+def cmap_white2alpha(name, ensure_increasing=True, register=False):
+    """
+    Convert colormap to have the most transparency possible, assuming white background.
+
+    Parameters
+    ----------
+    name : str
+        Name of builtin (or registered) colormap.
+    ensure_increasing : bool, default=False
+        Ensure that alpha values are strictly increasing.
+    register : bool, default=True
+        Whether to register the new colormap.
+
+    Returns
+    -------
+    cmap : matplotlib.colors.ListedColormap
+        Colormap with alpha set as low as possible.
+    """
+    # Fetch the cmap callable
+    cmap = plt.get_cmap(name)
+    # Get the colors out from the colormap LUT
+    rgb = cmap(np.arange(cmap.N))[:, :3]  # N-by-3
+    # Convert white to alpha
+    rgba = rgb_white2alpha(rgb, ensure_increasing=ensure_increasing)
+    # Create a new Colormap object
+    cmap_alpha = colors.ListedColormap(rgba, name=name + "_alpha")
+    if register:
+        cm.register_cmap(name=name + "_alpha", cmap=cmap_alpha)
+    return cmap_alpha

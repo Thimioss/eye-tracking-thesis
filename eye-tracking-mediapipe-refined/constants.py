@@ -1,4 +1,5 @@
 class Constants:
+    is_for_experiment = False
     measured_points_per_metric = 10
     right_iris_index = 473
     left_iris_index = 468
