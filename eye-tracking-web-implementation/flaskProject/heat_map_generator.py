@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -54,8 +56,8 @@ def generate_heat_map(x, y, c_v):
     ax.pcolormesh(xi, yi, zi.reshape(xi.shape), alpha=0.7, cmap=cmap)
     # pcolormesh or contourf
 
-    im = plt.imread('bg_image.jpg')
-    ax.imshow(im, extent=[0, c_v.window[2], 0, c_v.window[3]], aspect='auto')
+    # im = plt.imread('bg_image.jpg')
+    # ax.imshow(im, extent=[0, c_v.window[2], 0, c_v.window[3]], aspect='auto')
 
     fig.savefig(c_v.last_file_name+'_heatmap.png', dpi=dpi)
 

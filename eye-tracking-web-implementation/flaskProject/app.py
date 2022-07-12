@@ -42,11 +42,15 @@ def calibration():
 
 @app.route('/recording')
 def recording():
+    frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
+    frame_processing.start_recording_to_file()
     return render_template('Recording.html')
 
 
 @app.route('/result')
 def result():
+    frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
+    frame_processing.stop_recording_to_file()
     return render_template('Result.html')
 
 

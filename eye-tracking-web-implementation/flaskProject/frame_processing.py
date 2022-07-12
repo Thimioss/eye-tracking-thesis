@@ -47,6 +47,7 @@ rot_vec = []
 trans_vec = []
 cam_matrix = []
 dist_matrix = []
+left_gaze_point, right_gaze_point = [[]], [[]]
 
 start_time = time.time()
 display_time = 2
@@ -124,10 +125,12 @@ def load_values_from_json(name, dir):
 
 
 def start_recording_to_file():
-    global f, writer, video_writer
-    file_name = gui.prompt("Enter the name of the recording", "Input info", "")
+    global f, writer, video_writer, calculated_values, state_values
+    state_values.recording_happening = True
+    file_name = "image_"+str(time.time())
+    calculated_values.last_file_name = file_name
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    save_values_to_json(file_name, root_dir)
+    # save_values_to_json(file_name, root_dir)
     f = open(root_dir + '//' + file_name + '.csv', 'a', newline='')
     writer = csv.writer(f)
     writer.writerow(
@@ -136,12 +139,12 @@ def start_recording_to_file():
     # record video
     width = calculated_values.window[2]
     height = calculated_values.window[3]
-    video_writer = cv2.VideoWriter(file_name + '.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 20, (width, height))
+    # video_writer = cv2.VideoWriter(file_name + '.mp4', cv2.VideoWriter_fourcc(*'DIVX'), 20, (width, height))
 
 
 def stop_recording_to_file():
     global f, writer, video_writer
-    gui.alert("Recording complete", "Alert")
+    # gui.alert("Recording complete", "Alert")
     writer = None
     video_writer = None
     f.close()
@@ -184,6 +187,9 @@ def show_heat_map():
     # temp_xs.append(calculated_values.window[2])
     # temp_ys.append(calculated_values.window[3])
     heatmap_image = heat_map_generator.generate_heat_map(np.array(temp_xs), np.array(temp_ys), calculated_values)
+    root_dir = os.path.dirname(os.path.abspath(__file__)) + '//static//images//' + calculated_values.last_file_name + '.png'
+    root_dir = root_dir.replace('//', '\\', 345345)
+    cv2.imwrite(root_dir, heatmap_image)
     # cv2.namedWindow('heatmap', cv2.WINDOW_FREERATIO)
     # cv2.setWindowProperty('heatmap', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     # cv2.imshow('heatmap', heatmap_image)
@@ -787,8 +793,8 @@ def process_frame(image, screen, screen_diagonal_in_inches):
         # screen = cv2.rectangle(screen, (0, 0), (window[2] - 1, window[3] - 1), (85, 80, 78), -1)
 
         pure_image = copy.copy(image)
-        if state_values.recording_happening:
-            video_writer.write(image)
+        # if state_values.recording_happening:
+        #     video_writer.write(image)
 
         # smoothing_past_values_count = cv2.getTrackbarPos('smoothing_past_values_count', 'image')
         # smoothing_landmarks_count = cv2.getTrackbarPos('smoothing_landmarks_count', 'image')
