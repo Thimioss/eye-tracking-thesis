@@ -1,23 +1,35 @@
  .u-section-1 {
-  min-height: 1408px;
+  min-height: 100vh;
 }
 
 .u-section-1 .u-text-1 {
-  margin: 24px auto 0 calc(((100% - 1140px) / 2) + -19px);
+  margin: 0 auto;
 }
 
 .u-section-1 .u-text-2 {
-  margin: 24px auto 0 calc(((100% - 1140px) / 2) + -19px);
+  margin: 24px auto 0;
+}
+
+.u-section-1 .u-shape-1 {
+  width: 24px;
+  height: 24px;
+  margin: 457px auto 0;
+}
+
+.u-section-1 .u-shape-2 {
+  width: calc(((100% - 1140px) / 2) + -26px);
+  height: 24px;
+  background-image: none;
+  margin: -24px 0 0 auto;
 }
 
 .u-section-1 .u-list-1 {
   width: 514px;
-  margin: 138px auto 0 calc(((100% - 1140px) / 2) + -29px);
+  margin: -410px auto 0 16px;
 }
 
 .u-section-1 .u-repeater-1 {
-  min-height: 702px;
-  grid-auto-columns: 100%;
+  min-height: 537px;
   grid-template-columns: 100%;
   grid-gap: 30px 30px;
   margin-top: 0;
@@ -26,7 +38,7 @@
 }
 
 .u-section-1 .u-container-layout-1 {
-  padding: 10px;
+  padding: 0 10px;
 }
 
 .u-section-1 .u-btn-1 {
@@ -38,7 +50,7 @@
 }
 
 .u-section-1 .u-container-layout-2 {
-  padding: 10px;
+  padding: 0 10px;
 }
 
 .u-section-1 .u-btn-2 {
@@ -50,7 +62,7 @@
 }
 
 .u-section-1 .u-container-layout-3 {
-  padding: 10px;
+  padding: 0 10px;
 }
 
 .u-section-1 .u-btn-3 {
@@ -62,7 +74,7 @@
 }
 
 .u-section-1 .u-container-layout-4 {
-  padding: 10px;
+  padding: 0 10px;
 }
 
 .u-section-1 .u-btn-4 {
@@ -74,7 +86,7 @@
 }
 
 .u-section-1 .u-container-layout-5 {
-  padding: 10px;
+  padding: 0 10px;
 }
 
 .u-section-1 .u-btn-5 {
@@ -86,7 +98,7 @@
 }
 
 .u-section-1 .u-container-layout-6 {
-  padding: 10px;
+  padding: 0 10px;
 }
 
 .u-section-1 .u-btn-6 {
@@ -97,95 +109,58 @@
   padding: 8px 33px;
 }
 
-.u-section-1 .u-shape-1 {
-  width: 24px;
-  height: 24px;
-  margin: -296px auto 0;
-}
-
-.u-section-1 .u-shape-2 {
-  width: 24px;
-  height: 24px;
-  background-image: none;
-  margin: -24px 0 0 auto;
-}
-
 .u-section-1 .u-shape-3 {
   width: 24px;
   height: 24px;
   background-image: none;
-  margin: 611px auto 0;
+  margin: 481px auto 0;
 }
 
 @media (max-width: 1199px) {
-  .u-section-1 .u-text-1 {
-    margin-left: calc(((100% - 940px) / 2) + -19px);
-  }
-
-  .u-section-1 .u-text-2 {
-    margin-left: calc(((100% - 940px) / 2) + -19px);
-  }
-
-  .u-section-1 .u-list-1 {
-    margin-left: calc(((100% - 940px) / 2) + -29px);
-  }
-
   .u-section-1 .u-shape-1 {
     margin-left: 204px;
   }
 
   .u-section-1 .u-shape-2 {
+    width: calc(((100% - 940px) / 2) + -26px);
     margin-left: 812px;
   }
 }
 
 @media (max-width: 991px) {
-  .u-section-1 .u-text-1 {
-    margin-left: calc(((100% - 720px) / 2) + -19px);
-  }
-
-  .u-section-1 .u-text-2 {
-    margin-left: calc(((100% - 720px) / 2) + -19px);
-  }
-
-  .u-section-1 .u-list-1 {
-    margin-left: calc(((100% - 720px) / 2) + -29px);
-  }
-
   .u-section-1 .u-shape-1 {
     margin-left: 202px;
   }
 
   .u-section-1 .u-shape-2 {
+    width: calc(((100% - 720px) / 2) + -26px);
     margin-left: 594px;
   }
 }
 
 @media (max-width: 767px) {
-  .u-section-1 .u-text-1 {
-    margin-left: calc(((100% - 540px) / 2) + -19px);
-  }
-
-  .u-section-1 .u-text-2 {
-    margin-left: calc(((100% - 540px) / 2) + -19px);
-  }
-
-  .u-section-1 .u-list-1 {
-    margin-left: calc(((100% - 540px) / 2) + -29px);
+   .u-section-1 {
+    min-height: 1104px;
   }
 
   .u-section-1 .u-shape-2 {
+    width: calc(((100% - 540px) / 2) + -26px);
     margin-left: 414px;
+  }
+
+  .u-section-1 .u-shape-3 {
+    margin-bottom: 60px;
   }
 }
 
 @media (max-width: 575px) {
-  .u-section-1 .u-text-1 {
-    margin-left: calc(((100% - 340px) / 2) + -19px);
+   .u-section-1 {
+    min-height: 1012px;
   }
 
-  .u-section-1 .u-text-2 {
-    margin-left: calc(((100% - 340px) / 2) + -19px);
+  .u-section-1 .u-shape-2 {
+    width: calc(((100% - 340px) / 2) + -26px);
+    margin-left: 214px;
   }
 
   .u-section-1 .u-list-1 {
@@ -193,7 +168,13 @@
     margin-left: calc(((100% - 340px) / 2));
   }
 
-  .u-section-1 .u-shape-2 {
-    margin-left: 214px;
+  .u-section-1 .u-shape-3 {
+    margin-bottom: 24px;
   }
+
+  @media (max-width:629px) {
+  img#bg {
+    display: none;
+  }
+}
 }
