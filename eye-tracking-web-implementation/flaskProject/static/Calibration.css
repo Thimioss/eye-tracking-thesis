@@ -97,9 +97,9 @@
 }
 
 .u-section-1 .u-image-1 {
-  width: 620px;
-  height: 380px;
-  margin: -582px calc(((100% - 1140px) / 2) + -31px) 0 auto;
+  width: 322px;
+  height: 215px;
+  margin: -500px calc(((100% - 1140px) / 2) + 184px) 0 auto;
 }
 
 .u-section-1 .u-btn-7 {
@@ -108,7 +108,13 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   background-image: none;
-  margin: 157px calc(((100% - 1140px) / 2) + 103px) 0 auto;
+  margin: 240px calc(((100% - 1140px) / 2) + 103px) 0 auto;
+}
+
+.u-section-1 .u-shape-1 {
+  width: 489px;
+  height: 489px;
+  margin: -630px calc(((100% - 1140px) / 2) + 103px) 0 auto;
 }
 
 @media (max-width: 1199px) {
@@ -118,11 +124,15 @@
 
   .u-section-1 .u-image-1 {
     margin-top: -77px;
-    margin-right: calc(((100% - 940px) / 2) + -31px);
+    margin-right: calc(((100% - 940px) / 2) + 184px);
   }
 
   .u-section-1 .u-btn-7 {
     width: 134px;
+    margin-right: calc(((100% - 940px) / 2));
+  }
+
+  .u-section-1 .u-shape-1 {
     margin-right: calc(((100% - 940px) / 2));
   }
 }
@@ -133,19 +143,19 @@
   }
 
   .u-section-1 .u-image-1 {
-    margin-right: calc(((100% - 720px) / 2) + -31px);
+    margin-right: calc(((100% - 720px) / 2) + 184px);
   }
 
   .u-section-1 .u-btn-7 {
     margin-right: calc(((100% - 720px) / 2));
   }
+
+  .u-section-1 .u-shape-1 {
+    margin-right: calc(((100% - 720px) / 2));
+  }
 }
 
 @media (max-width: 767px) {
-   .u-section-1 {
-    min-height: 951px;
-  }
-
   .u-section-1 .u-text-2 {
     margin-left: 0;
   }
@@ -155,19 +165,21 @@
   }
 
   .u-section-1 .u-image-1 {
-    width: 540px;
-    height: 331px;
     margin-right: calc(((100% - 540px) / 2));
   }
 
   .u-section-1 .u-btn-7 {
     margin-right: calc(((100% - 540px) / 2));
   }
+
+  .u-section-1 .u-shape-1 {
+    margin-right: calc(((100% - 540px) / 2));
+  }
 }
 
 @media (max-width: 575px) {
    .u-section-1 {
-    min-height: 828px;
+    min-height: 851px;
   }
 
   .u-section-1 .u-list-1 {
@@ -176,13 +188,17 @@
   }
 
   .u-section-1 .u-image-1 {
-    width: 340px;
-    height: 208px;
     margin-top: -243px;
     margin-right: calc(((100% - 340px) / 2));
   }
 
   .u-section-1 .u-btn-7 {
+    margin-right: calc(((100% - 340px) / 2));
+  }
+
+  .u-section-1 .u-shape-1 {
+    width: 340px;
+    height: 340px;
     margin-right: calc(((100% - 340px) / 2));
   }
 }

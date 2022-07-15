@@ -23,7 +23,7 @@ def generate_heat_map(x, y, c_v):
     # axes[1, 0].hist2d(x, y, bins=nbins)
 
     # Evaluate a gaussian kde on a regular grid of nbins x nbins over data extents
-    k = kde.gaussian_kde(np.vstack([x, y]), bw_method=0.1)
+    k = kde.gaussian_kde(np.vstack([x, y]), bw_method=0.2)
     xi, yi = np.mgrid[0:c_v.window[2]:nbins * 1j, 0:c_v.window[3]:nbins * 1j]
     zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 

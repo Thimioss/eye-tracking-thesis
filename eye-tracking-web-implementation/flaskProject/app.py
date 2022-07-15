@@ -1,10 +1,14 @@
+
 from flask import Flask, request, render_template, Response, jsonify, redirect, url_for
+from numpy import random
 
 import frame_processing
 from camera import VideoCamera
 
 app = Flask(__name__)
 screen_size_in_inches = 0
+window = []
+number = 0
 
 
 # @app.route('/')
@@ -42,16 +46,19 @@ def calibration():
 
 @app.route('/recording')
 def recording():
+    global number
     frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
     frame_processing.start_recording_to_file()
-    return render_template('Recording.html')
+    number = random.randint(1, 5)
+    return render_template('Recording.html', rand_img=str(number)+'.jpg')
 
 
 @app.route('/result')
 def result():
     frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
     frame_processing.stop_recording_to_file()
-    return render_template('Result.html')
+    return render_template('Result.html', heatmap=frame_processing.calculated_values.last_file_name+'.png',
+                           rand_img=str(number)+'.jpg')
 
 
 @app.route('/1')

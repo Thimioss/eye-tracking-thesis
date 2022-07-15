@@ -756,7 +756,7 @@ def process_frame(image, screen, screen_diagonal_in_inches):
     global face_2d, face_3d, evaluation_data, constants, calibration_values, calculated_values, state_values, \
         eyes_anchor_points, face_detected, face_vector, face_center_screen_cal, right_gaze_point_cal, \
         left_gaze_point_cal, face_point, nose_landmark, keypoint_left, keypoint_right, rot_vec, trans_vec, cam_matrix, \
-        dist_matrix
+        dist_matrix, left_gaze_point, right_gaze_point
     calculated_values.screen_diagonal_in_cm = int(screen_diagonal_in_inches) * 2.54
     # # initiate screen interface
     # cv2.namedWindow('screen', cv2.WINDOW_FREERATIO)
