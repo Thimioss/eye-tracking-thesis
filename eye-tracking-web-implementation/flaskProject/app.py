@@ -22,9 +22,11 @@ def home():
 
 @app.route('/verify', methods=['GET', 'POST'])
 def verify():
-    global screen_size_in_inches
+    global screen_size_in_inches, window
     if request.method == 'POST':
         inches_input = int(request.form['number'])
+        res_input = request.form['Resolution']
+        window = [int(res_input.split('×')[0]), int(res_input.split('×')[1])]
         if isinstance(inches_input, int):
             screen_size_in_inches = inches_input
             return jsonify(isError=False,
@@ -106,7 +108,7 @@ def f6():
 def gen(camera):
     while True:
         img = camera.get_frame()
-        frame = frame_processing.process_frame(img, [0, 0, img.shape[1], img.shape[0]], screen_size_in_inches)
+        frame = frame_processing.process_frame(img, [0, 0, window[0], window[1]], screen_size_in_inches)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
