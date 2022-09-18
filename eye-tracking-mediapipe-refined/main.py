@@ -922,9 +922,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                 face_3d = np.array(face_anchors_3d, dtype=np.float64)
                 face_2d = np.array(face_anchors_2d, dtype=np.float64)
 
-                for point in face_2d:
-                    image = cv2.circle(image, (int(point[0]), int(point[1])),
-                                       1, (255, 255, 255), 1)
+                # for point in face_2d:
+                #     image = cv2.circle(image, (int(point[0]), int(point[1])),
+                #                        1, (255, 255, 255), 1)
 
                 focal_length = 1 * image.shape[1]
 
@@ -1007,19 +1007,20 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                         p3 = (int(axis_3d_projection[2][0][0]), int(axis_3d_projection[2][0][1]))
                         p4 = (int(axis_3d_projection[3][0][0]), int(axis_3d_projection[3][0][1]))
 
-                        cv2.line(image, p1, p4, (255, 0, 0), 3)
-                        cv2.line(image, p1, p2, (0, 0, 255), 3)
-                        cv2.line(image, p1, p3, (0, 255, 0), 3)
+                        #show face axis
+                        # cv2.line(image, p1, p4, (255, 0, 0), 3)
+                        # cv2.line(image, p1, p2, (0, 0, 255), 3)
+                        # cv2.line(image, p1, p3, (0, 255, 0), 3)
 
-                        show_text(image, "x", p2[0], p2[1])
-                        show_text(image, "y", p3[0], p3[1])
-                        show_text(image, "z", p4[0], p4[1])
+                        # show_text(image, "x", p2[0], p2[1])
+                        # show_text(image, "y", p3[0], p3[1])
+                        # show_text(image, "z", p4[0], p4[1])
 
                     face_reprojection = \
                         cv2.projectPoints(calculated_values.face_anchor_initial_points_3d, rot_vec, trans_vec,
                                           cam_matrix, dist_matrix)[0]
-                    for point in face_reprojection:
-                        image = cv2.circle(image, (int(point[0][0]), int(point[0][1])), 1, (0, 255, 255))
+                    # for point in face_reprojection:
+                    #     image = cv2.circle(image, (int(point[0][0]), int(point[0][1])), 1, (0, 255, 255))
 
                     face_direction_offset = [
                         ((calculated_values.face_distance + calibration_values.face_distance_offset) * face_vector[0]) /
@@ -1064,6 +1065,8 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                     calculated_values.face_anchor_initial_points_2d = np.array(
                         calculated_values.face_anchor_initial_points_2d, np.float32)
                     face_anchor_points = np.array(face_2d, np.float32)
+                    for point in face_2d[0:4]:
+                        image = cv2.circle(image, (int(point[0]), int(point[1])), 1, (0, 255, 255))
                     h, status = cv2.findHomography(calculated_values.face_anchor_initial_points_2d[0:4],
                                                    face_anchor_points[0:4],
                                                    method=cv2.RANSAC,
@@ -1089,9 +1092,9 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                             1] * calibration_values.eyes_depth_offset
 
                         image = cv2.circle(image, (int(eyes_anchor_points_cal[0][0]),
-                                                   int(eyes_anchor_points_cal[0][1])), 3, (200, 200, 200), 1)
+                                                   int(eyes_anchor_points_cal[0][1])), 3, (0, 255, 255), 1)
                         image = cv2.circle(image, (int(eyes_anchor_points_cal[1][0]),
-                                                   int(eyes_anchor_points_cal[1][1])), 3, (200, 200, 200), 1)
+                                                   int(eyes_anchor_points_cal[1][1])), 3, (0, 255, 255), 1)
 
                     # # eye tilt
                     # eyes_vectors = calculate_eyes_vectors(eyes_anchor_points_cal, keypoint_left, keypoint_right,
