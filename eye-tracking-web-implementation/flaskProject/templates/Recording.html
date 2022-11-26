@@ -8,6 +8,33 @@
     <title>Recording</title>
     <link rel="stylesheet" href="../static/nicepage.css" media="screen">
 <link rel="stylesheet" href="../static/Recording.css" media="screen">
+      <style>
+        .u-body {
+            --theme-sheet-width-xl: {{width}}px;
+            --theme-sheet-width-lg: {{width}}px;
+            --theme-sheet-width-md: {{width}}px;
+            --theme-sheet-width-sm: {{width}}px;
+            --theme-sheet-width-xs: {{width}}px;
+        }
+         .u-section-1 {
+            background-image: url("../static/images/{{rand_img}}");
+            background-position: 50% 50%;
+            width: {{width}}px;
+            height: {{height}}px;
+        }
+        .u-section-1 .u-image-1 {
+            margin: 0 {{camera_margin}} 0 auto;
+         }
+        .u-section-1 .u-btn-1 {
+          font-size: 0.9375rem;
+          letter-spacing: 1px;
+          border-style: none;
+          font-weight: 700;
+          text-transform: uppercase;
+          background-image: none;
+          margin-top: {{height-300}}px;
+        }
+    </style>
     <script class="u-script" type="text/javascript" src="../static/jquery.js" defer=""></script>
     <script class="u-script" type="text/javascript" src="../static/nicepage.js" defer=""></script>
     <meta name="generator" content="Nicepage 4.12.17, nicepage.com">
@@ -27,7 +54,7 @@
   <body class="u-body u-xl-mode">
     <section class="u-clearfix u-white u-section-1" id="sec-6cb1">
       <img class="u-image u-image-default u-image-1" src="{{ url_for('video_feed') }}" alt="" data-image-width="1280" data-image-height="853">
-      <img class="u-image u-image-contain u-image-2" src="../static/images/{{rand_img}}" data-image-width="1280" data-image-height="853">
+{#      <img class="u-image u-image-contain u-image-2" src="../static/images/{{rand_img}}" data-image-width="{{width}}" data-image-height="{{height}}">#}
       <a href="result" data-page-id="47006908" class="u-border-none u-btn u-button-style u-hover-palette-2-dark-1 u-palette-2-base u-btn-1">Stop recording</a>
     </section>
     

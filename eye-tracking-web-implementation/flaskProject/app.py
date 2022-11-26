@@ -9,6 +9,7 @@ app = Flask(__name__)
 screen_size_in_inches = 0
 window = []
 number = 0
+show_camera = True
 
 
 # @app.route('/')
@@ -41,7 +42,8 @@ def verify():
 @app.route('/calibration')
 def calibration():
     if screen_size_in_inches != 0:
-        return render_template('Calibration.html')
+        return render_template('Calibration.html', width=window[0], height=window[1],
+                               camera_margin=0 if show_camera else window[0])
     else:
         return redirect(url_for('home'))
 
@@ -52,7 +54,8 @@ def recording():
     frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
     frame_processing.start_recording_to_file()
     number = random.randint(1, 5)
-    return render_template('Recording.html', rand_img=str(number)+'.jpg')
+    return render_template('Recording.html', rand_img=str(number)+'.jpg', width=window[0], height=window[1],
+                           camera_margin=0 if show_camera else window[0])
 
 
 @app.route('/result')
@@ -60,7 +63,7 @@ def result():
     frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
     frame_processing.stop_recording_to_file()
     return render_template('Result.html', heatmap=frame_processing.calculated_values.last_file_name+'.png',
-                           rand_img=str(number)+'.jpg')
+                           rand_img=str(number)+'.jpg', width=window[0], height=window[1])
 
 
 @app.route('/1')

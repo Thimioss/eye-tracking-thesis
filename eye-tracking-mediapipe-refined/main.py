@@ -13,6 +13,8 @@ import pyautogui as gui
 import csv
 import json
 import jsonpickle
+import matplotlib.pyplot as plt
+from textwrap import wrap
 
 import heat_map_generator
 from calculated_values import CalculatedValues
@@ -39,6 +41,89 @@ angles = [0, 0, 0]
 f = None
 writer = None
 video_writer = None
+
+
+def show_clustered_column_chart():
+    plt.rcParams.update({'font.size': 8})
+    labels = ['Ιδανικές συνθήκες', 'Ακραία σημεία οθόνης', 'Χαμηλός φωτισμός', 'Έντονος φωτισμός',
+              'Μετατόπιση κεφαλιού (άξονας Χ)', 'Μετατόπιση κεφαλιού (άξονας Υ)', 'Μετατόπιση κεφαλιού (άξονας Ζ)']
+    labels = ['\n'.join(wrap(l, 13)) for l in labels]
+    # accuracy = [0.447, 0.397, 0.552, 0.476, 0.378, 0.421, 0.415]
+    # precision = [0.288, 0.569, 0.19, 0.316, 0.49, 0.346, 0.35]
+    # std_precision = [0.032, 0.032, 0.031, 0.031, 0.034, 0.04, 0.04]
+    accuracy = [0.440, 0.421, 0.507, 0.453, 0.439, 0.334, 0.366]
+    precision = [0.302, 0.548, 0.249, 0.276, 0.494, 0.425, 0.337]
+    std_precision = [0.039, 0.045, 0.038, 0.052, 0.055, 0.05, 0.05]
+
+    x__ = np.arange(len(labels))  # the label locations
+    width = 0.15  # the width of the bars
+    blue = '#4E8DE8'
+    red = '#E84E4E'
+    green = '#66D062'
+
+    fig, ax = plt.subplots()
+    rects1 = ax.bar(x__ - width, accuracy, width, label='Ορθότητα', color=blue)
+    rects2 = ax.bar(x__, precision, width, label='Ακρίβεια', color=red)
+    rects3 = ax.bar(x__ + width, std_precision, width, label='Ακρίβεια τυπικής απόκλισης', color=green)
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel('Μέγεθος μετρικής')
+    ax.set_title('Διοφθαλμικές μετρικές αξιολόγισης συστήματος σε διάφορες συνθήκες λειτουργίας')
+    ax.set_xticks(x__, labels)
+    ax.legend()
+
+    ax.margins(0.1, 0.4)
+
+    ax.bar_label(rects1, padding=3)
+    ax.bar_label(rects2, padding=3)
+    ax.bar_label(rects3, padding=3)
+
+    fig.tight_layout()
+
+    plt.savefig('clustered_column_chart.png', dpi=1000)
+    plt.show()
+
+
+def show_clustered_column_chart_comparison(my_system_monocular, pro_system_monocular, my_system_binocular,
+                                           pro_system_binocular, label):
+    plt.rcParams.update({'font.size': 8})
+    labels = ['Ορθότητα', 'Ακρίβεια', 'Ακρίβεια τυπικής απόκλισης']
+    labels = ['\n'.join(wrap(l, 13)) for l in labels]
+
+    x__ = np.arange(len(labels))  # the label locations
+    width = 0.15  # the width of the bars
+    yellow = '#f5f242'
+    purple = '#6e00db'
+
+    fig, ax = plt.subplots(ncols=1, nrows=2, sharex=True, sharey=True)
+    rects1 = ax[0].bar(x__ - width / 2, my_system_monocular, width, label='Σύστημα που αναπτύχθηκε', color=yellow)
+    rects2 = ax[0].bar(x__ + width / 2, pro_system_monocular, width, label='Επαγγελματικό σύστημα', color=purple)
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax[0].set_ylabel('Μέγεθος μετρικής')
+    ax[0].set_title('Μονοφθαλμικά αποτελέσματα')
+    ax[0].set_xticks(x__, labels)
+    ax[0].legend()
+    ax[0].margins(0.1, 0.4)
+    ax[0].bar_label(rects1, padding=3)
+    ax[0].bar_label(rects2, padding=3)
+
+    rects1 = ax[1].bar(x__ - width / 2, my_system_binocular, width, label='Σύστημα που αναπτύχθηκε', color=yellow)
+    rects2 = ax[1].bar(x__ + width / 2, pro_system_binocular, width, label='Επαγγελματικό σύστημα', color=purple)
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax[1].set_ylabel('Μέγεθος μετρικής')
+    ax[1].set_title('Διοφθαλμικά αποτελέσματα')
+    ax[1].set_xticks(x__, labels)
+    ax[1].legend()
+    ax[1].margins(0.1, 0.4)
+    ax[1].bar_label(rects1, padding=3)
+    ax[1].bar_label(rects2, padding=3)
+
+    fig.tight_layout()
+
+    plt.savefig('compare_column_chart' + label + '.png', dpi=1000)
+    plt.show()
 
 
 def nothing(x):
@@ -479,29 +564,22 @@ def show_measure_points_button(img):
     show_text(img, "Hold to measure", int(calculated_values.window[2] / 2) - 70, int(calculated_values.window[3]) - 150)
 
 
-def show_metrics(img, metrics, x_, y_):
-    if x_ == 20 and y_ == 20:
-        show_text(img, "Ideal metrics:", x_, y_)
-    elif x_ == 420 and y_ == 20:
-        show_text(img, "Edge metrics:", x_, y_)
-    elif x_ == 20 and y_ == 350:
-        show_text(img, "Dark metrics:", x_, y_)
-    elif x_ == 420 and y_ == 350:
-        show_text(img, "Turn metrics:", x_, y_)
-    show_text(img, "left_pixel_accuracy "+str(metrics.left_pixel_accuracy), x_, y_+20)
-    show_text(img, "right_pixel_accuracy "+str(metrics.right_pixel_accuracy), x_, y_+40)
-    show_text(img, "binocular_pixel_accuracy "+str(metrics.binocular_pixel_accuracy), x_, y_+60)
-    show_text(img, "left_pixel_precision "+str(metrics.left_pixel_precision), x_, y_+80)
-    show_text(img, "right_pixel_precision "+str(metrics.right_pixel_precision), x_, y_+100)
-    show_text(img, "binocular_pixel_precision "+str(metrics.binocular_pixel_precision), x_, y_+120)
-    show_text(img, "pixel_sd_precision "+str(metrics.pixel_sd_precision), x_, y_+140)
-    show_text(img, "left_angle_accuracy "+str(metrics.left_angle_accuracy), x_, y_+160)
-    show_text(img, "right_angle_accuracy "+str(metrics.right_angle_accuracy), x_, y_+180)
-    show_text(img, "binocular_angle_accuracy "+str(metrics.binocular_angle_accuracy), x_, y_+200)
-    show_text(img, "left_angle_precision "+str(metrics.left_angle_precision), x_, y_+220)
-    show_text(img, "right_angle_precision "+str(metrics.right_angle_precision), x_, y_+240)
-    show_text(img, "binocular_angle_precision "+str(metrics.binocular_angle_precision), x_, y_+260)
-    show_text(img, "angle_sd_precision "+str(metrics.angle_sd_precision), x_, y_+280)
+def show_metrics(img, metrics, x_, y_, metric_name):
+    show_text(img, metric_name, x_, y_)
+    show_text(img, "left_pixel_accuracy " + str(metrics.left_pixel_accuracy), x_, y_ + 20)
+    show_text(img, "right_pixel_accuracy " + str(metrics.right_pixel_accuracy), x_, y_ + 40)
+    show_text(img, "binocular_pixel_accuracy " + str(metrics.binocular_pixel_accuracy), x_, y_ + 60)
+    show_text(img, "left_pixel_precision " + str(metrics.left_pixel_precision), x_, y_ + 80)
+    show_text(img, "right_pixel_precision " + str(metrics.right_pixel_precision), x_, y_ + 100)
+    show_text(img, "binocular_pixel_precision " + str(metrics.binocular_pixel_precision), x_, y_ + 120)
+    show_text(img, "pixel_sd_precision " + str(metrics.pixel_sd_precision), x_, y_ + 140)
+    show_text(img, "left_angle_accuracy " + str(metrics.left_angle_accuracy), x_, y_ + 160)
+    show_text(img, "right_angle_accuracy " + str(metrics.right_angle_accuracy), x_, y_ + 180)
+    show_text(img, "binocular_angle_accuracy " + str(metrics.binocular_angle_accuracy), x_, y_ + 200)
+    show_text(img, "left_angle_precision " + str(metrics.left_angle_precision), x_, y_ + 220)
+    show_text(img, "right_angle_precision " + str(metrics.right_angle_precision), x_, y_ + 240)
+    show_text(img, "binocular_angle_precision " + str(metrics.binocular_angle_precision), x_, y_ + 260)
+    show_text(img, "angle_sd_precision " + str(metrics.angle_sd_precision), x_, y_ + 280)
 
 
 def show_evaluation_metrics(img):
@@ -509,14 +587,26 @@ def show_evaluation_metrics(img):
     ideal_metrics = evaluation_data.ideal_stage.get_stage_metrics(calculated_values)
     edge_metrics = evaluation_data.edge_stage.get_stage_metrics(calculated_values)
     dark_metrics = evaluation_data.dark_stage.get_stage_metrics(calculated_values)
-    turn_metrics = evaluation_data.turn_stage.get_stage_metrics(calculated_values)
+    bright_metrics = evaluation_data.bright_stage.get_stage_metrics(calculated_values)
+    head_left_metrics = evaluation_data.head_left_stage.get_stage_metrics(calculated_values)
+    head_right_metrics = evaluation_data.head_right_stage.get_stage_metrics(calculated_values)
+    head_up_metrics = evaluation_data.head_up_stage.get_stage_metrics(calculated_values)
+    head_down_metrics = evaluation_data.head_down_stage.get_stage_metrics(calculated_values)
+    head_close_metrics = evaluation_data.head_close_stage.get_stage_metrics(calculated_values)
+    head_far_metrics = evaluation_data.head_far_stage.get_stage_metrics(calculated_values)
 
     show_text(img, "Evaluation completed", int(calculated_values.window[2] / 2) - 100, 20)
 
-    show_metrics(img, ideal_metrics, 20, 20)
-    show_metrics(img, edge_metrics, 420, 20)
-    show_metrics(img, dark_metrics, 20, 350)
-    show_metrics(img, turn_metrics, 420, 350)
+    show_metrics(img, ideal_metrics, 400, 100, "Ideal metrics:")
+    show_metrics(img, edge_metrics, 900, 100, "Edge metrics:")
+    show_metrics(img, dark_metrics, 400, 430, "Dark metrics:")
+    show_metrics(img, bright_metrics, 900, 430, "Bright metrics:")
+    show_metrics(img, head_left_metrics, 400, 760, "Left head metrics:")
+    show_metrics(img, head_right_metrics, 900, 760, "Right head metrics:")
+    show_metrics(img, head_up_metrics, 1400, 100, "Up head metrics:")
+    show_metrics(img, head_down_metrics, 1900, 100, "Down head metrics:")
+    show_metrics(img, head_close_metrics, 1400, 430, "Close head metrics:")
+    show_metrics(img, head_far_metrics, 1900, 430, "Far head metrics:")
 
 
 def show_diagnostics(img):
@@ -567,7 +657,7 @@ def show_ui(img):
         show_diagnostics(img)
 
     # show evaluation metrics if evaluation completed
-    if evaluation_data.get_completed_stages_count() == 4:
+    if evaluation_data.get_completed_stages_count() == 10:
         show_evaluation_metrics(img)
 
     if state_values.calibration_completed is False:
@@ -582,9 +672,91 @@ def show_ui(img):
         elif evaluation_data.get_completed_stages_count() == 2:
             show_dark_evaluation_ui(img)
         elif evaluation_data.get_completed_stages_count() == 3:
-            show_turn_evaluation_ui(img)
+            show_bright_evaluation_ui(img)
         elif evaluation_data.get_completed_stages_count() == 4:
+            show_head_left_evaluation_ui(img)
+        elif evaluation_data.get_completed_stages_count() == 5:
+            show_head_right_evaluation_ui(img)
+        elif evaluation_data.get_completed_stages_count() == 6:
+            show_head_up_evaluation_ui(img)
+        elif evaluation_data.get_completed_stages_count() == 7:
+            show_head_down_evaluation_ui(img)
+        elif evaluation_data.get_completed_stages_count() == 8:
+            show_head_close_evaluation_ui(img)
+        elif evaluation_data.get_completed_stages_count() == 9:
+            show_head_far_evaluation_ui(img)
+        elif evaluation_data.get_completed_stages_count() == 10:
             state_values.evaluation_happening = False
+
+
+def show_head_far_evaluation_ui(img):
+    img = cv2.putText(img, "Head far conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
+
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.head_far_stage.get_completed_evaluation_points_count()], 20,
+                     (200, 200, 200), 2)
+
+
+def show_head_close_evaluation_ui(img):
+    img = cv2.putText(img, "Head close conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
+
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.head_close_stage.get_completed_evaluation_points_count()], 20,
+                     (200, 200, 200), 2)
+
+
+def show_head_down_evaluation_ui(img):
+    img = cv2.putText(img, "Head down conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
+
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.head_down_stage.get_completed_evaluation_points_count()], 20,
+                     (200, 200, 200), 2)
+
+
+def show_head_up_evaluation_ui(img):
+    img = cv2.putText(img, "Head up conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
+
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.head_up_stage.get_completed_evaluation_points_count()], 20,
+                     (200, 200, 200), 2)
+
+
+def show_head_left_evaluation_ui(img):
+    img = cv2.putText(img, "Head left conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
+
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.head_left_stage.get_completed_evaluation_points_count()], 20,
+                     (200, 200, 200), 2)
+
+
+def show_head_right_evaluation_ui(img):
+    img = cv2.putText(img, "Head right conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
+
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.head_right_stage.get_completed_evaluation_points_count()], 20,
+                     (200, 200, 200), 2)
+
+
+def show_bright_evaluation_ui(img):
+    img = cv2.putText(img, "Bright conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
+                      cv2.FONT_HERSHEY_PLAIN, 2,
+                      (255, 255, 255), 2)
+
+    img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
+        evaluation_data.bright_stage.get_completed_evaluation_points_count()], 20,
+                     (200, 200, 200), 2)
 
 
 def show_dark_evaluation_ui(img):
@@ -597,13 +769,13 @@ def show_dark_evaluation_ui(img):
                      (200, 200, 200), 2)
 
 
-def show_turn_evaluation_ui(img):
+def show_head_left_evaluation_ui(img):
     img = cv2.putText(img, "Various head pose conditions evaluation", (int(calculated_values.window[2] / 2) - 100, 40),
                       cv2.FONT_HERSHEY_PLAIN, 2,
                       (255, 255, 255), 2)
 
     img = cv2.circle(img, calculated_values.central_evaluation_points_offsets[
-        evaluation_data.turn_stage.get_completed_evaluation_points_count()], 20,
+        evaluation_data.head_left_stage.get_completed_evaluation_points_count()], 20,
                      (200, 200, 200), 2)
 
 
@@ -822,6 +994,27 @@ def show_whole_mesh(f_l, mp_f_m, mp_d_s, img):
         connection_drawing_spec=mp_d_s.get_default_face_mesh_iris_connections_style())
 
 
+show_clustered_column_chart()
+show_clustered_column_chart_comparison([0.401, 0.349, 0], [0.3, 0.14, 0], [0.44, 0.302, 0.039],
+                                       [0.2, 0.1, 0.05], 'ideal')
+show_clustered_column_chart_comparison([0.383, 0.571, 0], [0.4, 0.13, 0], [0.421, 0.548, 0.045],
+                                       [0.3, 0.09, 0.03], 'edges')
+show_clustered_column_chart_comparison([0.492, 0.266, 0], [1, 0.13, 0], [0.507, 0.249, 0.038],
+                                       [0.8, 0.09, 0.06], 'dark')
+show_clustered_column_chart_comparison([0.407, 0.292, 0], [0.6, 0.17, 0], [0.453, 0.276, 0.052],
+                                       [0.5, 0.11, 0.02], 'bright')
+show_clustered_column_chart_comparison([0.519, 0.867, 0], [0.4, 0.13, 0], [0.524, 0.685, 0.049],
+                                       [0.3, 0.1, 0.02], 'left')
+show_clustered_column_chart_comparison([0.289, 0.578, 0], [0.4, 0.2, 0], [0.354, 0.303, 0.061],
+                                       [0.5, 0.14, 0.07], 'right')
+show_clustered_column_chart_comparison([0.489, 0.166, 0], [0.5, 0.15, 0], [0.496, 0.189, 0.039],
+                                       [0.4, 0.1, 0.04], 'up')
+show_clustered_column_chart_comparison([0.165, 0.632, 0], [0.8, 0.16, 0], [0.173, 0.668, 0.062],
+                                       [0.8, 0.11, 0.03], 'down')
+show_clustered_column_chart_comparison([0.477, 0.194, 0], [0.8, 0.29, 0], [0.47, 0.181, 0.021],
+                                       [0.6, 0.19, 0.07], 'close')
+show_clustered_column_chart_comparison([0.212, 0.664, 0], [0.6, 0.34, 0], [0.292, 0.493, 0.08],
+                                       [0.5, 0.21, 0.14], 'far')
 # initiate screen interface
 cv2.namedWindow('screen', cv2.WINDOW_FREERATIO)
 cv2.setWindowProperty('screen', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -1007,7 +1200,7 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                         p3 = (int(axis_3d_projection[2][0][0]), int(axis_3d_projection[2][0][1]))
                         p4 = (int(axis_3d_projection[3][0][0]), int(axis_3d_projection[3][0][1]))
 
-                        #show face axis
+                        # show face axis
                         # cv2.line(image, p1, p4, (255, 0, 0), 3)
                         # cv2.line(image, p1, p2, (0, 0, 255), 3)
                         # cv2.line(image, p1, p3, (0, 255, 0), 3)
@@ -1205,7 +1398,8 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
                         screen = cv2.circle(screen, (int(face_point_cal[0]), int(face_point_cal[1])), 20,
                                             (200, 200, 70), 2)
                         screen = cv2.circle(screen, (int(right_gaze_point_fin[0] + calculated_values.window[2] / 2),
-                                                     int(right_gaze_point_fin[1] + calculated_values.window[3] / 2)), 20,
+                                                     int(right_gaze_point_fin[1] + calculated_values.window[3] / 2)),
+                                            20,
                                             (70, 200, 70), 2)
                         screen = cv2.circle(screen, (int(left_gaze_point_fin[0] + calculated_values.window[2] / 2),
                                                      int(left_gaze_point_fin[1] + calculated_values.window[3] / 2)), 20,
@@ -1226,7 +1420,7 @@ with mp_face_mesh.FaceMesh(max_num_faces=1,
 
                     # measure values for evaluation
                     if state_values.evaluation_happening:
-                        if evaluation_data.get_completed_stages_count() == 4:
+                        if evaluation_data.get_completed_stages_count() == 10:
                             state_values.evaluation_happening = False
                             state_values.evaluation_measuring_points = False
                         if state_values.evaluation_measuring_points:
