@@ -2003,10 +2003,18 @@ a {
   pointer-events: none;
 }
 .u-form-file-upload input[type="file"] {
-  display: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+  flex-grow: 1;
 }
 .u-form-file-upload .u-file-template {
-  display: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+  flex-grow: 1;
 }
 .u-form-file-upload .u-file-input-wrapper,
 .u-form-file-upload .u-file-list,

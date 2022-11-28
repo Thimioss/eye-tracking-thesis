@@ -30,7 +30,7 @@
         <h1 class="u-text u-text-default u-title u-text-1">Auth Eye Tracker</h1>
         <p class="u-large-text u-text u-text-variant u-text-2">Welcome to the Auth Eye Tracker web implementation.</p>
         <div class="u-form u-form-1">
-          <form action="/verify" method="POST" class="u-clearfix u-form-spacing-10 u-form-vertical u-inner-form" source="custom" name="form" style="padding: 10px;">
+          <form action="/verify" method="POST" class="u-clearfix u-form-spacing-10 u-form-vertical u-inner-form" source="custom" name="form" style="padding: 10px;" enctype=multipart/form-data>
             <div class="u-form-group u-form-name">
               <label for="name-e755" class="u-label">Screen size</label>
               <input type="text" placeholder="Enter screen diagonal in inches" id="name-e755" name="number" class="u-border-1 u-border-grey-30 u-input u-input-rectangle u-white" required="">
@@ -42,13 +42,21 @@
                   <option value="3840×2160">3840x2160</option>
                   <option value="2560×1440">2560x1440</option>
                   <option value="1920×1080">1920x1080</option>
+                  <option value="1600×900">1600×900</option>
+                  <option value="1366×768">1366×768</option>
                   <option value="1280×720">1280x720</option>
+                  <option value="1152×648">1152×648</option>
+                  <option value="1024×576">1024×576</option>
                   <option value="854×480">854x480</option>
                   <option value="640×360">640x360</option>
                   <option value="426×240">426x240</option>
                 </select>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="12" version="1" class="u-caret"><path fill="currentColor" d="M4 8L0 4h8z"></path></svg>
               </div>
+            </div>
+            <div class="u-form-group u-form-file-upload">
+              <label for="file" class="u-label">Upload image</label>
+              <input type=file name=file >
             </div>
             <div class="u-align-left u-form-group u-form-submit">
               <a href="#" class="u-border-none u-btn u-btn-submit u-button-style u-palette-1-base u-btn-1">Submit</a>
