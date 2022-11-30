@@ -30,6 +30,7 @@ constants = Constants()
 calibration_values = CalibrationValues()
 calculated_values = CalculatedValues()
 state_values = StateValues()
+current_point = None
 
 face_2d = []
 face_3d = []
@@ -757,7 +758,7 @@ def process_frame(image, screen, screen_diagonal_in_inches):
     global face_2d, face_3d, evaluation_data, constants, calibration_values, calculated_values, state_values, \
         eyes_anchor_points, face_detected, face_vector, face_center_screen_cal, right_gaze_point_cal, \
         left_gaze_point_cal, face_point, nose_landmark, keypoint_left, keypoint_right, rot_vec, trans_vec, cam_matrix, \
-        dist_matrix, left_gaze_point, right_gaze_point
+        dist_matrix, left_gaze_point, right_gaze_point, current_point
     calculated_values.screen_diagonal_in_cm = int(screen_diagonal_in_inches) * 2.54
     # # initiate screen interface
     # cv2.namedWindow('screen', cv2.WINDOW_FREERATIO)
@@ -815,7 +816,7 @@ def process_frame(image, screen, screen_diagonal_in_inches):
 
         # show_ui(screen)
 
-        show_fps(image)
+        # show_fps(image)
 
         if results.multi_face_landmarks:
             face_detected = True
@@ -1177,4 +1178,6 @@ def process_frame(image, screen, screen_diagonal_in_inches):
         # cv2.imshow('image', image)
         # cv2.imshow('screen', screen)
         ret, jpeg = cv2.imencode('.jpg', image)
-        return jpeg.tobytes()
+        if current_point is None:
+            current_point = (-10, -10)
+        return jpeg.tobytes(), image, current_point

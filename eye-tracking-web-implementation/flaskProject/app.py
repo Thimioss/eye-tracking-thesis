@@ -1,21 +1,35 @@
+import base64
+import copy
+import io
 import os
+import time
+from threading import Thread
 
+import cv2
+import numpy as np
+from PIL import Image
 from flask import Flask, request, render_template, Response, jsonify, redirect, url_for, flash
 from numpy import random
 from werkzeug.utils import secure_filename
+from flask_socketio import SocketIO, emit
 
 import frame_processing
 from camera import VideoCamera
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins='*')
 screen_size_in_inches = 0
-window = []
+window = None
 number = 0
 show_camera = True
 uploaded_file_name = ""
 UPLOAD_FOLDER = 'C:\\Users\\themi\\Desktop\\Diplomatic\\Repository\\eye-tracking-thesis\\eye-tracking-web-implementation\\flaskProject\\static\\images\\'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+debug_image = []
+debug_screen_image = None
+debug_started = False
+gaze_point = None
 
 
 # @app.route('/')
@@ -74,23 +88,23 @@ def verify():
                            statusCode=400), 400
 
 
-@app.route('/calibration')
+@app.route('/calibration', methods=['POST', 'GET'])
 def calibration():
     if screen_size_in_inches != 0:
         return render_template('Calibration.html', width=window[0], height=window[1],
-                               camera_margin=0 if show_camera else window[0])
+                               camera_margin=30 if show_camera else window[0])
     else:
         return redirect(url_for('home'))
 
 
-@app.route('/recording')
+@app.route('/recording', methods=['POST', 'GET'])
 def recording():
     global number
     frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
     frame_processing.start_recording_to_file()
     number = random.randint(1, 5)
     return render_template('Recording.html', rand_img=uploaded_file_name, width=window[0], height=window[1],
-                           camera_margin=0 if show_camera else window[0])
+                           camera_margin=30 if show_camera else window[0])
 
 
 @app.route('/result')
@@ -143,19 +157,121 @@ def f6():
     return "Nothing"
 
 
-def gen(camera):
+# def gen(camera):
+#     while True:
+#         img = camera.get_frame()
+#         frame = frame_processing.process_frame(img, [0, 0, window[0], window[1]], screen_size_in_inches)
+#         yield (b'--frame\r\n'
+#                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+
+# @app.route('/video_feed')
+# def video_feed():
+#     return Response(gen(VideoCamera()),
+#                     mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+def readb64(base64_string):
+    idx = base64_string.find('base64,')
+    base64_string = base64_string[idx + 7:]
+
+    sbuf = io.BytesIO()
+
+    sbuf.write(base64.b64decode(base64_string, ' /'))
+    pimg = Image.open(sbuf)
+
+    return cv2.cvtColor(np.array(pimg), cv2.COLOR_RGB2BGR)
+
+
+def moving_average(x):
+    return np.mean(x)
+
+
+@socketio.on('catch-frame')
+def catch_frame(data):
+    emit('response_back', data)
+
+
+global fps, prev_recv_time, cnt, fps_array
+fps = 30
+prev_recv_time = 0
+cnt = 0
+fps_array = [0]
+
+
+@socketio.on('image')
+def image(data_image):
+    global fps, cnt, prev_recv_time, fps_array, debug_image, debug_started, gaze_point, debug_screen_image
+    recv_time = time.time()
+    text = 'FPS: ' + str(fps)
+    frame = (readb64(data_image))
+    frame = np.asarray(frame)
+    # frame = cv2.flip(frame, 1)
+
+    if window is not None:
+        frame_in_bytes, frame, gaze_point = frame_processing.process_frame(frame, [0, 0, window[0], window[1]],
+                                                                           screen_size_in_inches)
+    debug_image = copy.copy(frame)
+    if not debug_started:
+        debug_started = True
+        thread = Thread(target=threaded_function, args=(10,))
+        thread.start()
+        thread.join()
+        print("thread finished...exiting")
+
+    imgencode = cv2.imencode('.jpeg', frame, [cv2.IMWRITE_JPEG_QUALITY, 40])[1]
+
+    # base64 encode
+    stringData = base64.b64encode(imgencode).decode('utf-8')
+    b64_src = 'data:image/jpeg;base64,'
+    stringData = b64_src + stringData
+
+    # emit the frame back
+    emit('response_back', stringData)
+
+    # if debug_screen_image is not None:
+    #     screen_encode = cv2.imencode('.jpeg', debug_screen_image, [cv2.IMWRITE_JPEG_QUALITY, 40])[1]
+    #
+    #     # base64 encode
+    #     screen_string_data = base64.b64encode(screen_encode).decode('utf-8')
+    #     b64_src = 'data:image/jpeg;base64,'
+    #     screen_string_data = b64_src + screen_string_data
+    #     emit('background_image', screen_string_data)
+
+    fps = 1 / (recv_time - prev_recv_time)
+    fps_array.append(fps)
+    fps = round(moving_average(np.array(fps_array)), 1)
+    prev_recv_time = recv_time
+    # print(fps_array)
+    cnt += 1
+    if cnt == 30:
+        fps_array = [fps]
+        cnt = 0
+
+
+def threaded_function(arg):
+    global debug_screen_image
     while True:
-        img = camera.get_frame()
-        frame = frame_processing.process_frame(img, [0, 0, window[0], window[1]], screen_size_in_inches)
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
-
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(gen(VideoCamera()),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+        cv2.namedWindow("debug")
+        cv2.imshow('debug', debug_image)
+        cv2.namedWindow("debug_screen")
+        if window is not None:
+            debug_screen_image = np.zeros((window[1], window[0], 3), dtype='uint8')
+            debug_screen_image = cv2.rectangle(debug_screen_image, (0, 0), (window[0] - 1, window[1] - 1),
+                                               (255, 255, 255), -1)
+            debug_screen_image = cv2.circle(debug_screen_image, (int(window[0] / 2), int(window[1] / 2)), 20,
+                                            (80, 80, 80), 2)
+            debug_screen_image = cv2.circle(debug_screen_image, (int(window[0]), int(window[1] / 2)), 20,
+                                            (80, 80, 80), 2)
+            debug_screen_image = cv2.circle(debug_screen_image, (int(window[0] / 2), int(window[1])), 20,
+                                            (80, 80, 80), 2)
+            if gaze_point != (-10, -10) and gaze_point is not None:
+                debug_screen_image = cv2.circle(debug_screen_image, gaze_point, 20,
+                                                (70, 70, 200), 2)
+            cv2.imshow('debug_screen', debug_screen_image)
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
 
 
 if __name__ == '__main__':
-    app.run()
+    socketio.run(app, port=5000, debug=True)

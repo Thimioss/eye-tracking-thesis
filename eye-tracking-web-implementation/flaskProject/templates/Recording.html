@@ -23,7 +23,13 @@
             height: {{height}}px;
         }
         .u-section-1 .u-image-1 {
-            margin: 0 {{camera_margin}} 0 auto;
+            height: 240px;
+            width: auto;
+            margin: 20px {{camera_margin}}px 0 30px;
+            border-radius: 20px;
+         }
+        .u-section-1 .u-image-2 {
+            margin: 0 {{width}} 0 auto;
          }
         .u-section-1 .u-btn-1 {
           font-size: 0.9375rem;
@@ -32,11 +38,19 @@
           font-weight: 700;
           text-transform: uppercase;
           background-image: none;
-          margin-top: {{height-300}}px;
+          margin-top: {{height-360}}px;
         }
+        #video {
+    		transform: rotateY(180deg);
+    		-webkit-transform:rotateY(180deg); /* Safari and Chrome */
+    		-moz-transform:rotateY(180deg); /* Firefox */
+
+    	}
     </style>
     <script class="u-script" type="text/javascript" src="../static/jquery.js" defer=""></script>
     <script class="u-script" type="text/javascript" src="../static/nicepage.js" defer=""></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+     <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.0/socket.io.js'></script>
     <meta name="generator" content="Nicepage 4.12.17, nicepage.com">
     <link id="u-theme-google-font" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,100i,300,300i,400,400i,500,500i,700,700i,900,900i|Open+Sans:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i">
     
@@ -53,7 +67,57 @@
   </head>
   <body class="u-body u-xl-mode">
     <section class="u-clearfix u-white u-section-1" id="sec-6cb1">
-      <img class="u-image u-image-default u-image-1" src="{{ url_for('video_feed') }}" alt="" data-image-width="1280" data-image-height="853">
+        <div class="u-image-2" id="container">
+            <video autoplay playsinline id="videoElement"></video>
+            <canvas id="canvas"  width="640" height="480"></canvas>
+          </div>
+            <img class="u-image-1" id="photo" >
+              <script type="text/javascript" charset="utf-8">
+
+                    var socket = io.connect(window.location.protocol + '//' + document.domain + ':' + location.port);
+                    socket.on('connect', function(){
+                        console.log("Connected...!", socket.connected)
+                    });
+
+
+                    var canvas = document.getElementById('canvas');
+                    var context = canvas.getContext('2d');
+                    const video = document.querySelector("#videoElement");
+
+                    video.width = 640;
+                    video.height = 480;
+
+
+                    if (navigator.mediaDevices.getUserMedia) {
+                        navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(function (stream) {
+                            video.srcObject = stream;
+                            video.play();
+                        })
+                        .catch(function (err0r) {
+
+                        });
+                    }
+
+                    const FPS = 30;
+                    setInterval(() => {
+                        width=video.width;
+                        height=video.height;
+                        context.drawImage(video, 0, 0, width , height );
+                        var data = canvas.toDataURL('image/jpeg', 1);
+                        context.clearRect(0, 0, width,height );
+                        socket.emit('image', data);
+                    }, 1000/FPS);
+
+                    socket.on('response_back', function(image){
+                            photo.setAttribute('src', image );
+                    });
+                    socket.on('set_background', function (image){
+                        document.getElementById('sec-a70c').style.backgroundImage=image;
+                    });
+
+                </script>
+{#      <img class="u-image u-image-default u-image-1" src="{{ url_for('video_feed') }}" alt="" data-image-width="1280" data-image-height="853">#}
 {#      <img class="u-image u-image-contain u-image-2" src="../static/images/{{rand_img}}" data-image-width="{{width}}" data-image-height="{{height}}">#}
       <a href="result" data-page-id="47006908" class="u-border-none u-btn u-button-style u-hover-palette-2-dark-1 u-palette-2-base u-btn-1">Stop recording</a>
     </section>
