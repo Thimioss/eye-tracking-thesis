@@ -31,6 +31,7 @@ calibration_values = CalibrationValues()
 calculated_values = CalculatedValues()
 state_values = StateValues()
 current_point = None
+smooth_point = None
 
 face_2d = []
 face_3d = []
@@ -49,6 +50,10 @@ trans_vec = []
 cam_matrix = []
 dist_matrix = []
 left_gaze_point, right_gaze_point = [[]], [[]]
+# average smoothing arrays
+offset_history = np.array(
+        [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],
+         [0, 0]])
 
 start_time = time.time()
 display_time = 2
@@ -128,15 +133,16 @@ def load_values_from_json(name, dir):
 def start_recording_to_file():
     global f, writer, video_writer, calculated_values, state_values
     state_values.recording_happening = True
-    file_name = "image_"+str(time.time())
+    file_name = "image_" + str(time.time())
     calculated_values.last_file_name = file_name
     root_dir = os.path.dirname(os.path.abspath(__file__))
     # save_values_to_json(file_name, root_dir)
     f = open(root_dir + '//' + file_name + '.csv', 'a', newline='')
     writer = csv.writer(f)
     writer.writerow(
-        ['Left_Gaze_Point_On_Display_Area_X', 'Right_Gaze_Point_On_Display_Area_X',
-         'Left_Gaze_Point_On_Display_Area_Y', 'Right_Gaze_Point_On_Display_Area_Y', 'Date_time'])
+        ['Smoothed_Point_X', 'Smoothed_Point_Y', 'Left_Gaze_Point_On_Display_Area_X',
+         'Right_Gaze_Point_On_Display_Area_X', 'Left_Gaze_Point_On_Display_Area_Y',
+         'Right_Gaze_Point_On_Display_Area_Y', 'Date_time'])
     # record video
     width = calculated_values.window[2]
     height = calculated_values.window[3]
@@ -155,43 +161,70 @@ def stop_recording_to_file():
 
 def show_heat_map():
     global calculated_values
+    import scanpath
+    import fixation_map
+    import fixation_scan
     temp_right_eye_xs = []
     temp_left_eye_xs = []
     temp_right_eye_ys = []
     temp_left_eye_ys = []
+    temp_times = []
     temp_xs = []
     temp_ys = []
     with open('C:\\Users\\themi\\Desktop\\Diplomatic\\Repository\\eye-tracking-thesis\\eye-tracking-web'
-              '-implementation\\flaskProject\\'+calculated_values.last_file_name + '.csv', mode='r') as csv_file:
+              '-implementation\\flaskProject\\' + calculated_values.last_file_name + '.csv', mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         line_count = 0
         for row_ in csv_reader:
             if line_count == 0:
                 line_count += 1
-            if int(row_["Left_Gaze_Point_On_Display_Area_X"]) >= 0 and \
-                    int(row_["Right_Gaze_Point_On_Display_Area_X"]) >= 0 and \
-                    int(row_["Right_Gaze_Point_On_Display_Area_Y"]) >= 0 and \
-                    int(row_["Left_Gaze_Point_On_Display_Area_Y"]) >= 0 and \
-                    int(row_["Left_Gaze_Point_On_Display_Area_X"]) <= calculated_values.window[2] and \
-                    int(row_["Right_Gaze_Point_On_Display_Area_X"]) <= calculated_values.window[2] and \
-                    int(row_["Right_Gaze_Point_On_Display_Area_Y"]) <= calculated_values.window[3] and \
-                    int(row_["Left_Gaze_Point_On_Display_Area_Y"]) <= calculated_values.window[3]:
-                temp_left_eye_xs.append(int(row_["Left_Gaze_Point_On_Display_Area_X"]))
-                temp_right_eye_xs.append(int(row_["Right_Gaze_Point_On_Display_Area_X"]))
-                temp_right_eye_ys.append(int(row_["Right_Gaze_Point_On_Display_Area_Y"]))
-                temp_left_eye_ys.append(int(row_["Left_Gaze_Point_On_Display_Area_Y"]))
-                temp_xs.append(int((int(row_["Left_Gaze_Point_On_Display_Area_X"]) + int(
-                    row_["Right_Gaze_Point_On_Display_Area_X"])) / 2))
-                temp_ys.append(calculated_values.window[3] -
-                               int((int(row_["Right_Gaze_Point_On_Display_Area_Y"]) + int(
-                                   row_["Left_Gaze_Point_On_Display_Area_Y"])) / 2))
+            if 0 <= int(row_["Smoothed_Point_X"]) <= calculated_values.window[2] and int(row_["Smoothed_Point_Y"]) and \
+                    int(row_["Smoothed_Point_Y"]) <= calculated_values.window[3]:
+                temp_xs.append(int(row_["Smoothed_Point_X"]))
+                temp_ys.append(int(row_["Smoothed_Point_Y"]))
+                temp_times.append(float(row_["Date_time"]))
+            # if int(row_["Left_Gaze_Point_On_Display_Area_X"]) >= 0 and \
+            #         int(row_["Right_Gaze_Point_On_Display_Area_X"]) >= 0 and \
+            #         int(row_["Right_Gaze_Point_On_Display_Area_Y"]) >= 0 and \
+            #         int(row_["Left_Gaze_Point_On_Display_Area_Y"]) >= 0 and \
+            #         int(row_["Left_Gaze_Point_On_Display_Area_X"]) <= calculated_values.window[2] and \
+            #         int(row_["Right_Gaze_Point_On_Display_Area_X"]) <= calculated_values.window[2] and \
+            #         int(row_["Right_Gaze_Point_On_Display_Area_Y"]) <= calculated_values.window[3] and \
+            #         int(row_["Left_Gaze_Point_On_Display_Area_Y"]) <= calculated_values.window[3]:
+            #     temp_left_eye_xs.append(int(row_["Left_Gaze_Point_On_Display_Area_X"]))
+            #     temp_right_eye_xs.append(int(row_["Right_Gaze_Point_On_Display_Area_X"]))
+            #     temp_right_eye_ys.append(int(row_["Right_Gaze_Point_On_Display_Area_Y"]))
+            #     temp_left_eye_ys.append(int(row_["Left_Gaze_Point_On_Display_Area_Y"]))
+            #     temp_xs.append(int((int(row_["Left_Gaze_Point_On_Display_Area_X"]) + int(
+            #         row_["Right_Gaze_Point_On_Display_Area_X"])) / 2))
+            #     temp_ys.append(int((int(row_["Right_Gaze_Point_On_Display_Area_Y"]) + int(
+            #         row_["Left_Gaze_Point_On_Display_Area_Y"])) / 2))
+            #     temp_times.append(float(row_["Date_time"]))
             line_count += 1
     # temp_xs.append(calculated_values.window[2])
     # temp_ys.append(calculated_values.window[3])
     heatmap_image = heat_map_generator.generate_heat_map(np.array(temp_xs), np.array(temp_ys), calculated_values)
-    root_dir = os.path.dirname(os.path.abspath(__file__)) + '//static//images//' + calculated_values.last_file_name + '.png'
+    scanpath_image = scanpath.scanpath_im(np.array(temp_xs), np.array(temp_ys), calculated_values)
+    fixation_map_image = fixation_map.fixation_map_im(np.array(temp_xs), np.array(temp_ys), temp_times,
+                                                      calculated_values)
+    fixation_scan_image = fixation_scan.fixation_scan_im(np.array(temp_xs), np.array(temp_ys), temp_times,
+                                                         calculated_values)
+    root_dir = os.path.dirname(
+        os.path.abspath(__file__)) + '//static//images//' + calculated_values.last_file_name + '_heatmap.png'
     root_dir = root_dir.replace('//', '\\', 345345)
     cv2.imwrite(root_dir, heatmap_image)
+    root_dir = os.path.dirname(
+        os.path.abspath(__file__)) + '//static//images//' + calculated_values.last_file_name + '_scanpath.png'
+    root_dir = root_dir.replace('//', '\\', 345345)
+    cv2.imwrite(root_dir, scanpath_image)
+    root_dir = os.path.dirname(
+        os.path.abspath(__file__)) + '//static//images//' + calculated_values.last_file_name + '_fixation_map.png'
+    root_dir = root_dir.replace('//', '\\', 345345)
+    cv2.imwrite(root_dir, fixation_map_image)
+    root_dir = os.path.dirname(
+        os.path.abspath(__file__)) + '//static//images//' + calculated_values.last_file_name + '_fixation_scan.png'
+    root_dir = root_dir.replace('//', '\\', 345345)
+    cv2.imwrite(root_dir, fixation_scan_image)
     # cv2.namedWindow('heatmap', cv2.WINDOW_FREERATIO)
     # cv2.setWindowProperty('heatmap', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     # cv2.imshow('heatmap', heatmap_image)
@@ -758,7 +791,7 @@ def process_frame(image, screen, screen_diagonal_in_inches):
     global face_2d, face_3d, evaluation_data, constants, calibration_values, calculated_values, state_values, \
         eyes_anchor_points, face_detected, face_vector, face_center_screen_cal, right_gaze_point_cal, \
         left_gaze_point_cal, face_point, nose_landmark, keypoint_left, keypoint_right, rot_vec, trans_vec, cam_matrix, \
-        dist_matrix, left_gaze_point, right_gaze_point, current_point
+        dist_matrix, left_gaze_point, right_gaze_point, current_point, smooth_point
     calculated_values.screen_diagonal_in_cm = int(screen_diagonal_in_inches) * 2.54
     # # initiate screen interface
     # cv2.namedWindow('screen', cv2.WINDOW_FREERATIO)
@@ -776,10 +809,7 @@ def process_frame(image, screen, screen_diagonal_in_inches):
     # # calibration with mouse event
     # cv2.setMouseCallback('screen', mouse_event)
 
-    # average smoothing arrays
-    offset_history = np.array(
-        [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],
-         [0, 0]])
+
 
     landmarks_history = np.zeros([10, 4, 3])
 
@@ -1113,13 +1143,14 @@ def process_frame(image, screen, screen_diagonal_in_inches):
                         offset_history[i + 1] = offset_history[i]
                     offset_history[0] = [current_point[0], current_point[1]]
 
-                    # if smoothing_past_values_count == 0:
-                    smooth_point = current_point
-                    # else:
-                    #     sum_x = sum(offset_history[0:smoothing_past_values_count, 0])
-                    #     sum_y = sum(offset_history[0:smoothing_past_values_count, 1])
-                    #     smooth_point = (int(sum_x / smoothing_past_values_count),
-                    #                     int(sum_y / smoothing_past_values_count))
+                    smoothing_past_values_count = 10
+                    if smoothing_past_values_count == 0:
+                        smooth_point = current_point
+                    else:
+                        sum_x = sum(offset_history[0:smoothing_past_values_count, 0])
+                        sum_y = sum(offset_history[0:smoothing_past_values_count, 1])
+                        smooth_point = (int(sum_x / smoothing_past_values_count),
+                                        int(sum_y / smoothing_past_values_count))
 
                     # show point
                     # screen = cv2.circle(screen, smooth_point, 20,
@@ -1136,7 +1167,9 @@ def process_frame(image, screen, screen_diagonal_in_inches):
                     # record values to file
                     if state_values.recording_happening:
                         if writer is not None:
-                            row = [int(left_gaze_point_fin[0] + calculated_values.window[2] / 2),
+                            row = [smooth_point[0],
+                                   smooth_point[1],
+                                   int(left_gaze_point_fin[0] + calculated_values.window[2] / 2),
                                    int(right_gaze_point_fin[0] + calculated_values.window[2] / 2),
                                    int(left_gaze_point_fin[1] + calculated_values.window[3] / 2),
                                    int(right_gaze_point_fin[1] + calculated_values.window[3] / 2),
@@ -1178,6 +1211,6 @@ def process_frame(image, screen, screen_diagonal_in_inches):
         # cv2.imshow('image', image)
         # cv2.imshow('screen', screen)
         ret, jpeg = cv2.imencode('.jpg', image)
-        if current_point is None:
-            current_point = (-10, -10)
-        return jpeg.tobytes(), image, current_point
+        if smooth_point is None:
+            smooth_point = (-10, -10)
+        return jpeg.tobytes(), image, smooth_point

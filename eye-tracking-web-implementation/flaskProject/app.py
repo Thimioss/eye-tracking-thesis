@@ -8,13 +8,12 @@ from threading import Thread
 import cv2
 import numpy as np
 from PIL import Image
-from flask import Flask, request, render_template, Response, jsonify, redirect, url_for, flash
+from flask import Flask, request, render_template, jsonify, redirect, url_for
+from flask_socketio import SocketIO, emit
 from numpy import random
 from werkzeug.utils import secure_filename
-from flask_socketio import SocketIO, emit
 
 import frame_processing
-from camera import VideoCamera
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*')
@@ -111,7 +110,10 @@ def recording():
 def result():
     frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
     frame_processing.stop_recording_to_file()
-    return render_template('Result.html', heatmap=frame_processing.calculated_values.last_file_name + '.png',
+    return render_template('Result.html', heatmap=frame_processing.calculated_values.last_file_name + '_heatmap.png',
+                           scanpath=frame_processing.calculated_values.last_file_name + '_scanpath.png',
+                           fixation_map=frame_processing.calculated_values.last_file_name + '_fixation_map.png',
+                           fixation_scan=frame_processing.calculated_values.last_file_name + '_fixation_scan.png',
                            rand_img=uploaded_file_name, width=window[0], height=window[1])
 
 
