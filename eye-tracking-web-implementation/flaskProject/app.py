@@ -8,9 +8,8 @@ from threading import Thread
 import cv2
 import numpy as np
 from PIL import Image
-from flask import Flask, request, render_template, jsonify, redirect, url_for
+from flask import Flask, request, render_template, jsonify, redirect, url_for, Response
 from flask_socketio import SocketIO, emit
-from numpy import random
 from werkzeug.utils import secure_filename
 
 import frame_processing
@@ -112,6 +111,18 @@ def result():
                            fixation_map=frame_processing.calculated_values.last_file_name + '_fixation_map.png',
                            fixation_scan=frame_processing.calculated_values.last_file_name + '_fixation_scan.png',
                            uploaded_image=uploaded_file_name, width=window[0], height=window[1])
+
+
+@app.route("/get_csv")
+def get_csv():
+    with open('C:\\Users\\themi\\Desktop\\Diplomatic\\Repository\\eye-tracking-thesis\\eye-tracking-web'
+              '-implementation\\flaskProject\\' + frame_processing.calculated_values.last_file_name + '.csv') as fp:
+        csv = fp.read()
+    return Response(
+        csv,
+        mimetype="text/csv",
+        headers={"Content-disposition":
+                 "attachment; filename=Eye tracker data.csv"})
 
 
 @app.route('/1')

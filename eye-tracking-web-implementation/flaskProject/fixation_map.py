@@ -7,7 +7,7 @@ import numpy as np
 from flaskProject.image_edit import remove_black_background
 
 
-def fixation_map_im(x_list, y_list, time_list, c_v):
+def fixation_map_im(x_list, y_list, weighs, c_v):
     image = np.zeros(shape=(c_v.window[3], c_v.window[2], 3), dtype=np.uint8)
     overlay = image.copy()
     alpha = 0.5
@@ -21,12 +21,12 @@ def fixation_map_im(x_list, y_list, time_list, c_v):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
     else:
-        min_time = min(time_list)
-        max_time = max(time_list)
+        min_time = min(weighs)
+        max_time = max(weighs)
         differece_times = math.ceil(max_time - min_time)
         for i in range(len(x_list)):
             if differece_times != 0:
-                radius = 25 + int(50 * (time_list[i] - min_time) / differece_times)
+                radius = 25 + int(50 * (weighs[i] - min_time) / differece_times)
             else:
                 radius = 25
             cv2.circle(overlay, (x_list[i], y_list[i]), radius, (0, 255, 0), -1)

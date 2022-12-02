@@ -13,6 +13,8 @@ import pyautogui as gui
 import csv
 import json
 import jsonpickle
+import saccademodel
+from sklearn.cluster import DBSCAN
 
 import heat_map_generator
 from calculated_values import CalculatedValues
@@ -52,8 +54,8 @@ dist_matrix = []
 left_gaze_point, right_gaze_point = [[]], [[]]
 # average smoothing arrays
 offset_history = np.array(
-        [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],
-         [0, 0]])
+    [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0],
+     [0, 0]])
 
 start_time = time.time()
 display_time = 2
@@ -156,10 +158,10 @@ def stop_recording_to_file():
     video_writer = None
     f.close()
     f = None
-    show_heat_map()
+    show_visualizations()
 
 
-def show_heat_map():
+def show_visualizations():
     global calculated_values
     import scanpath
     import fixation_map
@@ -178,8 +180,8 @@ def show_heat_map():
         for row_ in csv_reader:
             if line_count == 0:
                 line_count += 1
-            if 0 <= int(row_["Smoothed_Point_X"]) <= calculated_values.window[2] and int(row_["Smoothed_Point_Y"]) and \
-                    int(row_["Smoothed_Point_Y"]) <= calculated_values.window[3]:
+            if 0 <= int(row_["Smoothed_Point_X"]) <= calculated_values.window[2] and 0 <= int(
+                    row_["Smoothed_Point_Y"]) <= calculated_values.window[3]:
                 temp_xs.append(int(row_["Smoothed_Point_X"]))
                 temp_ys.append(int(row_["Smoothed_Point_Y"]))
                 temp_times.append(float(row_["Date_time"]))
@@ -203,12 +205,63 @@ def show_heat_map():
             line_count += 1
     # temp_xs.append(calculated_values.window[2])
     # temp_ys.append(calculated_values.window[3])
+
+    ## saccademodel library
+    # points = []
+    # for i in range(len(temp_xs)):
+    #     points.append([temp_xs[i], temp_ys[i]])
+    #
+    # clusters = []
+    # while len(points) > 0:
+    #     results = saccademodel.fit(points)
+    #     if len(results['source_points']) > 0:
+    #         clusters.append(results['source_points'])
+    #     points = results['target_points']
+    #
+    # centers = []
+    # weighs = []
+    # for i in range(len(clusters)):
+    #     weighs.append(len(clusters[i]))
+    #     center = centeroidnp(np.array(clusters[i]))
+    #     centers.append([int(center[0]), int(center[1])])
+
+    ## dbscan library
+    dropped_times = [float(i-min(temp_times)) for i in temp_times]
+    normalized_times = [(float(i)/max(dropped_times))*calculated_values.window[2] for i in dropped_times]
+    points = []
+    for i in range(len(temp_xs)):
+        points.append([temp_xs[i], temp_ys[i], normalized_times[i]])
+
+    points = np.array(points)
+
+    model = DBSCAN(eps=80, min_samples=5)
+    pred = model.fit_predict(points)
+
+    # fig = plt.figure()
+    # ax = Axes3D(fig)
+    # ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=model.labels_, s=300)
+    # ax.view_init(azim=200)
+    # plt.show()
+
+    labels = model.labels_
+    centers = []
+    weighs = []
+    for i in range(max(labels) + 1):
+        points_temp = points[labels == i, 0:2]
+        center = centeroidnp(points_temp)
+        centers.append([int(center[0]), int(center[1])])
+        weighs.append(len(points_temp))
+
+    x_list = []
+    y_list = []
+    centers = np.array(centers)
+    if len(centers) > 0:
+        x_list = np.array(centers[:, 0])
+        y_list = np.array(centers[:, 1])
     heatmap_image = heat_map_generator.generate_heat_map(np.array(temp_xs), np.array(temp_ys), calculated_values)
-    scanpath_image = scanpath.scanpath_im(np.array(temp_xs), np.array(temp_ys), calculated_values)
-    fixation_map_image = fixation_map.fixation_map_im(np.array(temp_xs), np.array(temp_ys), temp_times,
-                                                      calculated_values)
-    fixation_scan_image = fixation_scan.fixation_scan_im(np.array(temp_xs), np.array(temp_ys), temp_times,
-                                                         calculated_values)
+    scanpath_image = scanpath.scanpath_im(x_list, y_list, calculated_values)
+    fixation_map_image = fixation_map.fixation_map_im(x_list, y_list, weighs, calculated_values)
+    fixation_scan_image = fixation_scan.fixation_scan_im(x_list, y_list, weighs, calculated_values)
     root_dir = os.path.dirname(
         os.path.abspath(__file__)) + '//static//images//' + calculated_values.last_file_name + '_heatmap.png'
     root_dir = root_dir.replace('//', '\\', 345345)
@@ -228,6 +281,13 @@ def show_heat_map():
     # cv2.namedWindow('heatmap', cv2.WINDOW_FREERATIO)
     # cv2.setWindowProperty('heatmap', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     # cv2.imshow('heatmap', heatmap_image)
+
+
+def centeroidnp(arr):
+    length = arr.shape[0]
+    sum_x = np.sum(arr[:, 0])
+    sum_y = np.sum(arr[:, 1])
+    return sum_x / length, sum_y / length
 
 
 def mouse_event(event, x, y, flags, param):
@@ -808,8 +868,6 @@ def process_frame(image, screen, screen_diagonal_in_inches):
     #
     # # calibration with mouse event
     # cv2.setMouseCallback('screen', mouse_event)
-
-
 
     landmarks_history = np.zeros([10, 4, 3])
 

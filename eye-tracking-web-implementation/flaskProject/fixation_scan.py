@@ -7,12 +7,12 @@ import numpy as np
 from flaskProject.image_edit import remove_black_background
 
 
-def fixation_scan_im(x_list, y_list, time_list, c_v):
+def fixation_scan_im(x_list, y_list, weighs, c_v):
     """
     Draws Fixation-Scanpath on image with saved data
     :param x_list: list with x coordinates of fixations
     :param y_list: list with y coordinates of fixations
-    :param time_list: list with time of fixations
+    :param weighs: list with time of fixations
     :param imagen: image shown
     """
     image = np.zeros(shape=(c_v.window[3], c_v.window[2], 3), dtype=np.uint8)
@@ -32,12 +32,12 @@ def fixation_scan_im(x_list, y_list, time_list, c_v):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
     else:
-        min_time = min(time_list)
-        max_time = max(time_list)
+        min_time = min(weighs)
+        max_time = max(weighs)
         differece_times = math.ceil(max_time - min_time)
         for i in range(len(x_list)):
             if differece_times != 0:
-                radius.append(25 + int(50 * (time_list[i] - min_time) / differece_times))
+                radius.append(25 + int(50 * (weighs[i] - min_time) / differece_times))
             else:
                 radius.append(25)
         for i in range(len(x_list)):
