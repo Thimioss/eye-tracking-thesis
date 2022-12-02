@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
     <meta name="keywords" content="">
+      <link rel="shortcut icon" type="image/x-icon" href="../static/images/favicon.ico">
     <meta name="description" content="">
     <title>Recording</title>
     <link rel="stylesheet" href="../static/nicepage.css" media="screen">
@@ -17,7 +18,7 @@
             --theme-sheet-width-xs: {{width}}px;
         }
          .u-section-1 {
-            background-image: url("../static/images/{{rand_img}}");
+            background-image: url("../static/images/{{uploaded_image}}");
             background-size:cover;
             width: {{width}}px;
             height: {{height}}px;
@@ -46,6 +47,16 @@
     		-moz-transform:rotateY(180deg); /* Firefox */
 
     	}
+        #loading {
+            width: 441px;
+            height: 291px;
+            border-radius: 20px;
+            display: none;
+            background: url("../static/images/loadingimage.gif");
+            cursor: wait;
+            margin-top: calc(0px - {{height/2}}px - 145px);
+            margin-left: calc({{(width/2)}}px - 200px);
+        }
     </style>
     <script class="u-script" type="text/javascript" src="../static/jquery.js" defer=""></script>
     <script class="u-script" type="text/javascript" src="../static/nicepage.js" defer=""></script>
@@ -72,6 +83,12 @@
             <canvas id="canvas"  width="640" height="480"></canvas>
           </div>
             <img class="u-image-1" id="photo" >
+                <script type="text/javascript">// <![CDATA[
+                    function loading(){
+                        $("#loading").show();
+                        $("#content").hide();
+                    }
+            // ]]></script>
               <script type="text/javascript" charset="utf-8">
 
                     var socket = io.connect(window.location.protocol + '//' + document.domain + ':' + location.port);
@@ -119,7 +136,8 @@
                 </script>
 {#      <img class="u-image u-image-default u-image-1" src="{{ url_for('video_feed') }}" alt="" data-image-width="1280" data-image-height="853">#}
 {#      <img class="u-image u-image-contain u-image-2" src="../static/images/{{rand_img}}" data-image-width="{{width}}" data-image-height="{{height}}">#}
-      <a href="result" data-page-id="47006908" class="u-border-none u-btn u-button-style u-hover-palette-2-dark-1 u-palette-2-base u-btn-1">Stop recording</a>
+      <a href="result" data-page-id="47006908" class="u-border-none u-btn u-button-style u-hover-palette-2-dark-1 u-palette-2-base u-btn-1" onclick="loading();">Stop recording</a>
+        <div id="loading"></div>
     </section>
     
     

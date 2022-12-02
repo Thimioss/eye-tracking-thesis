@@ -3,6 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
+      <link rel="shortcut icon" type="image/x-icon" href="../static/images/favicon.ico">
     <meta name="keywords" content="">
     <meta name="description" content="">
     <title>Result</title>
@@ -16,12 +17,12 @@
             --theme-sheet-width-sm: {{width}}px;
             --theme-sheet-width-xs: {{width}}px;
         }
-        .u-section-1 {
-            height: 240px;
-            width: auto;
-            margin: 20px {{camera_margin}}px 0 30px;
-            border-radius: 20px;
-         }
+        {#.u-section-1 {#}
+        {#    height: 240px;#}
+        {#    width: auto;#}
+        {#    margin: 20px {{camera_margin}}px 0 30px;#}
+        {#    border-radius: 20px;#}
+        {# }#}
         {#.u-section-1 .u-image-2 {#}
         {#    margin: 0 {{width}} 0 auto;#}
         {# }#}
@@ -53,35 +54,35 @@
           <div class="u-container-style u-hover-feature u-list-item u-repeater-item u-shape-rectangle u-list-item-1">
             <div class="u-container-layout u-similar-container u-container-layout-1">
               <h5 class="u-text u-text-default u-text-grey-75 u-text-2">Initial image</h5>
-              <img class="u-image u-image-default u-image-1" src="../static/images/{{rand_img}}" alt="" data-image-width="1280" data-image-height="853">
-              <img class="u-image u-image-default u-opacity u-opacity-60 u-image-2" src="../static/images/{{rand_img}}" alt="" data-image-width="1280" data-image-height="766">
+              <img class="u-image u-image-default u-image-1" src="../static/images/{{uploaded_image}}" alt="" data-image-width="1280" data-image-height="853">
+              <img class="u-image u-image-default u-opacity u-opacity-60 u-image-2" src="../static/images/{{uploaded_image}}" alt="" data-image-width="1280" data-image-height="766">
             </div>
           </div>
           <div class="u-align-center u-container-style u-hover-feature u-list-item u-repeater-item u-shape-rectangle u-list-item-2">
             <div class="u-container-layout u-similar-container u-container-layout-2">
               <h5 class="u-text u-text-default u-text-grey-75 u-text-3">Heatmap</h5>
-              <img class="u-image u-image-default u-image-3" src="../static/images/{{rand_img}}" alt="" data-image-width="1280" data-image-height="853">
+              <img class="u-image u-image-default u-image-3" src="../static/images/{{uploaded_image}}" alt="" data-image-width="1280" data-image-height="853">
               <img class="u-image u-image-default u-opacity u-opacity-60 u-image-4" src="../static/images/{{heatmap}}" alt="" data-image-width="1280" data-image-height="766">
             </div>
           </div>
           <div class="u-align-center u-container-style u-hover-feature u-list-item u-repeater-item u-shape-rectangle u-list-item-3">
             <div class="u-container-layout u-similar-container u-container-layout-3">
               <h5 class="u-text u-text-default u-text-grey-75 u-text-4">Scanpath</h5>
-              <img class="u-image u-image-default u-image-5" src="../static/images/{{rand_img}}" alt="" data-image-width="1280" data-image-height="853">
+              <img class="u-image u-image-default u-image-5" src="../static/images/{{uploaded_image}}" alt="" data-image-width="1280" data-image-height="853">
               <img class="u-image u-image-default u-opacity u-opacity-60 u-image-6" src="../static/images/{{scanpath}}" alt="" data-image-width="1280" data-image-height="766">
             </div>
           </div>
           <div class="u-align-center u-container-style u-hover-feature u-list-item u-repeater-item u-shape-rectangle u-list-item-4">
             <div class="u-container-layout u-similar-container u-container-layout-4">
               <h5 class="u-text u-text-default u-text-grey-75 u-text-5">Fixation map</h5>
-              <img class="u-image u-image-default u-image-7" src="../static/images/{{rand_img}}" alt="" data-image-width="1280" data-image-height="853">
+              <img class="u-image u-image-default u-image-7" src="../static/images/{{uploaded_image}}" alt="" data-image-width="1280" data-image-height="853">
               <img class="u-image u-image-default u-opacity u-opacity-60 u-image-8" src="../static/images/{{fixation_map}}" alt="" data-image-width="1280" data-image-height="766">
             </div>
           </div>
           <div class="u-align-center u-container-style u-hover-feature u-list-item u-repeater-item u-shape-rectangle u-list-item-5">
             <div class="u-container-layout u-similar-container u-container-layout-5">
               <h5 class="u-text u-text-default u-text-grey-75 u-text-6">Fixation scanpath</h5>
-              <img class="u-image u-image-default u-image-9" src="../static/images/{{rand_img}}" alt="" data-image-width="1280" data-image-height="853">
+              <img class="u-image u-image-default u-image-9" src="../static/images/{{uploaded_image}}" alt="" data-image-width="1280" data-image-height="853">
               <img class="u-image u-image-default u-opacity u-opacity-60 u-image-10" src="../static/images/{{fixation_scan}}" alt="" data-image-width="1280" data-image-height="766">
             </div>
           </div>

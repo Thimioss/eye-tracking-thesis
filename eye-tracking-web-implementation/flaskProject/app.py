@@ -19,7 +19,6 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*')
 screen_size_in_inches = 0
 window = None
-number = 0
 show_camera = True
 uploaded_file_name = ""
 UPLOAD_FOLDER = 'C:\\Users\\themi\\Desktop\\Diplomatic\\Repository\\eye-tracking-thesis\\eye-tracking-web-implementation\\flaskProject\\static\\images\\'
@@ -98,11 +97,9 @@ def calibration():
 
 @app.route('/recording', methods=['POST', 'GET'])
 def recording():
-    global number
     frame_processing.state_values.recording_happening = not frame_processing.state_values.recording_happening
     frame_processing.start_recording_to_file()
-    number = random.randint(1, 5)
-    return render_template('Recording.html', rand_img=uploaded_file_name, width=window[0], height=window[1],
+    return render_template('Recording.html', uploaded_image=uploaded_file_name, width=window[0], height=window[1],
                            camera_margin=30 if show_camera else window[0])
 
 
@@ -114,7 +111,7 @@ def result():
                            scanpath=frame_processing.calculated_values.last_file_name + '_scanpath.png',
                            fixation_map=frame_processing.calculated_values.last_file_name + '_fixation_map.png',
                            fixation_scan=frame_processing.calculated_values.last_file_name + '_fixation_scan.png',
-                           rand_img=uploaded_file_name, width=window[0], height=window[1])
+                           uploaded_image=uploaded_file_name, width=window[0], height=window[1])
 
 
 @app.route('/1')
