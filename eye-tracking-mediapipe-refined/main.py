@@ -45,7 +45,7 @@ video_writer = None
 
 
 def show_clustered_column_chart():
-    locale.setlocale(locale.LC_ALL, "en_EN")
+    locale.setlocale(locale.LC_ALL, "el_EL")
     plt.rcParams['axes.formatter.use_locale'] = True
     plt.rcParams.update({'font.size': 8})
     labels = ['Ιδανικές συνθήκες', 'Ακραία σημεία οθόνης', 'Χαμηλός φωτισμός', 'Έντονος φωτισμός',
@@ -77,9 +77,9 @@ def show_clustered_column_chart():
 
     ax.margins(0.1, 0.4)
 
-    ax.bar_label(rects1, padding=3)
-    ax.bar_label(rects2, padding=3)
-    ax.bar_label(rects3, padding=3)
+    ax.bar_label(rects1, [(str(item).replace('.', ',')) for item in accuracy], padding=3)
+    ax.bar_label(rects2, [(str(item).replace('.', ',')) for item in precision], padding=3)
+    ax.bar_label(rects3, [(str(item).replace('.', ',')) for item in std_precision], padding=3)
 
     fig.tight_layout()
 
@@ -108,8 +108,8 @@ def show_clustered_column_chart_comparison(my_system_monocular, pro_system_monoc
     ax[0].set_xticks(x__, labels)
     ax[0].legend()
     ax[0].margins(0.1, 0.4)
-    ax[0].bar_label(rects1, padding=3)
-    ax[0].bar_label(rects2, padding=3)
+    ax[0].bar_label(rects1, [(str(item).replace('.', ',')) for item in my_system_monocular], padding=3)
+    ax[0].bar_label(rects2, [(str(item).replace('.', ',')) for item in pro_system_monocular], padding=3)
 
     rects1 = ax[1].bar(x__ - width / 2, my_system_binocular, width, label='Σύστημα που αναπτύχθηκε', color=yellow)
     rects2 = ax[1].bar(x__ + width / 2, pro_system_binocular, width, label='Επαγγελματικό σύστημα', color=purple)
@@ -120,8 +120,8 @@ def show_clustered_column_chart_comparison(my_system_monocular, pro_system_monoc
     ax[1].set_xticks(x__, labels)
     ax[1].legend()
     ax[1].margins(0.1, 0.4)
-    ax[1].bar_label(rects1, padding=3)
-    ax[1].bar_label(rects2, padding=3)
+    ax[1].bar_label(rects1, [(str(item).replace('.', ',')) for item in my_system_binocular], padding=3)
+    ax[1].bar_label(rects2, [(str(item).replace('.', ',')) for item in pro_system_binocular], padding=3)
 
     fig.tight_layout()
 
@@ -997,27 +997,29 @@ def show_whole_mesh(f_l, mp_f_m, mp_d_s, img):
         connection_drawing_spec=mp_d_s.get_default_face_mesh_iris_connections_style())
 
 
-show_clustered_column_chart()
-show_clustered_column_chart_comparison([0.401, 0.349, 0], [0.3, 0.14, 0], [0.44, 0.302, 0.039],
-                                       [0.2, 0.1, 0.05], 'ideal')
-show_clustered_column_chart_comparison([0.383, 0.571, 0], [0.4, 0.13, 0], [0.421, 0.548, 0.045],
-                                       [0.3, 0.09, 0.03], 'edges')
-show_clustered_column_chart_comparison([0.492, 0.266, 0], [1, 0.13, 0], [0.507, 0.249, 0.038],
-                                       [0.8, 0.09, 0.06], 'dark')
-show_clustered_column_chart_comparison([0.407, 0.292, 0], [0.6, 0.17, 0], [0.453, 0.276, 0.052],
-                                       [0.5, 0.11, 0.02], 'bright')
-show_clustered_column_chart_comparison([0.519, 0.867, 0], [0.4, 0.13, 0], [0.524, 0.685, 0.049],
-                                       [0.3, 0.1, 0.02], 'left')
-show_clustered_column_chart_comparison([0.289, 0.578, 0], [0.4, 0.2, 0], [0.354, 0.303, 0.061],
-                                       [0.5, 0.14, 0.07], 'right')
-show_clustered_column_chart_comparison([0.489, 0.166, 0], [0.5, 0.15, 0], [0.496, 0.189, 0.039],
-                                       [0.4, 0.1, 0.04], 'up')
-show_clustered_column_chart_comparison([0.165, 0.632, 0], [0.8, 0.16, 0], [0.173, 0.668, 0.062],
-                                       [0.8, 0.11, 0.03], 'down')
-show_clustered_column_chart_comparison([0.477, 0.194, 0], [0.8, 0.29, 0], [0.47, 0.181, 0.021],
-                                       [0.6, 0.19, 0.07], 'close')
-show_clustered_column_chart_comparison([0.212, 0.664, 0], [0.6, 0.34, 0], [0.292, 0.493, 0.08],
-                                       [0.5, 0.21, 0.14], 'far')
+## static evaluation results plots print
+# show_clustered_column_chart()
+# show_clustered_column_chart_comparison([0.401, 0.349, 0], [0.3, 0.14, 0], [0.44, 0.302, 0.039],
+#                                        [0.2, 0.1, 0.05], 'ideal')
+# show_clustered_column_chart_comparison([0.383, 0.571, 0], [0.4, 0.13, 0], [0.421, 0.548, 0.045],
+#                                        [0.3, 0.09, 0.03], 'edges')
+# show_clustered_column_chart_comparison([0.492, 0.266, 0], [1, 0.13, 0], [0.507, 0.249, 0.038],
+#                                        [0.8, 0.09, 0.06], 'dark')
+# show_clustered_column_chart_comparison([0.407, 0.292, 0], [0.6, 0.17, 0], [0.453, 0.276, 0.052],
+#                                        [0.5, 0.11, 0.02], 'bright')
+# show_clustered_column_chart_comparison([0.519, 0.867, 0], [0.4, 0.13, 0], [0.524, 0.685, 0.049],
+#                                        [0.3, 0.1, 0.02], 'left')
+# show_clustered_column_chart_comparison([0.289, 0.578, 0], [0.4, 0.2, 0], [0.354, 0.303, 0.061],
+#                                        [0.5, 0.14, 0.07], 'right')
+# show_clustered_column_chart_comparison([0.489, 0.166, 0], [0.5, 0.15, 0], [0.496, 0.189, 0.039],
+#                                        [0.4, 0.1, 0.04], 'up')
+# show_clustered_column_chart_comparison([0.165, 0.632, 0], [0.8, 0.16, 0], [0.173, 0.668, 0.062],
+#                                        [0.8, 0.11, 0.03], 'down')
+# show_clustered_column_chart_comparison([0.477, 0.194, 0], [0.8, 0.29, 0], [0.47, 0.181, 0.021],
+#                                        [0.6, 0.19, 0.07], 'close')
+# show_clustered_column_chart_comparison([0.212, 0.664, 0], [0.6, 0.34, 0], [0.292, 0.493, 0.08],
+#                                        [0.5, 0.21, 0.14], 'far')
+
 # initiate screen interface
 cv2.namedWindow('screen', cv2.WINDOW_FREERATIO)
 cv2.setWindowProperty('screen', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
